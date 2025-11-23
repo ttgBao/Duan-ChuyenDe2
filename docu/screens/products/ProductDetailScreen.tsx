@@ -380,7 +380,7 @@ export default function ProductDetailScreen() {
               activeOpacity={0.7}
             >
               <Text className="font-semibold text-sm">
-                {comment.user?.fullName || "Người dùng"}
+                {comment.user?.nickname || "Người dùng"}
               </Text>
             </TouchableOpacity>
 
@@ -1343,7 +1343,7 @@ export default function ProductDetailScreen() {
               {replyingTo && !editingComment && (
                 <View className="flex-row items-center justify-between mb-2 p-2 bg-gray-100 rounded-lg">
                   <Text className="text-gray-600 text-sm">
-                    Đang trả lời {replyingTo.user?.fullName || "Người dùng"}
+                    Đang trả lời {replyingTo.user?.nickname || "Người dùng"}
                   </Text>
                   <TouchableOpacity onPress={() => setReplyingTo(null)}>
                     <Ionicons name="close-circle" size={20} color="#999" />
