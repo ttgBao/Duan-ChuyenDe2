@@ -376,7 +376,7 @@ export type Notification = {
   // Quan hệ: Người gây ra hành động
   actor: {
     id: number;
-    fullName: string;
+    nickname: string;
     image?: string;
   };
 

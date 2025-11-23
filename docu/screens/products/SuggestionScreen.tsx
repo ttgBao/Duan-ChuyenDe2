@@ -8,16 +8,15 @@ import {
   ScrollView,
   SafeAreaView,
   Alert,
+  Image,
 } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { RootStackParamList, Product } from "../../types"; // Giữ nguyên import của bạn
+import { RootStackParamList, Product } from "../../types";
 import { Feather } from "@expo/vector-icons";
 import axios from "axios";
 import { path } from "../../config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import ProductCard from "../../components/ProductCard";
 
-// Kiểu dữ liệu cho API feed
 type SuggestionFeedItem = {
   subCategory: { id: number; name: string };
   sellingSuggestions: Product[];
@@ -33,7 +32,6 @@ type Props = {
   navigation: SuggestionScreenNavigationProp;
 };
 
-// API Backend
 const fetchSuggestionFeed = async () => {
   const token = await AsyncStorage.getItem("token");
   if (!token) throw new Error("Chưa đăng nhập");
@@ -48,8 +46,6 @@ export default function SuggestionScreen({ navigation }: Props) {
   const [feedData, setFeedData] = useState<SuggestionFeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
-
-  // 1. [THÊM] State quản lý bộ lọc
   const [selectedSubCatId, setSelectedSubCatId] = useState<number | null>(null);
 
   const fetchFavorites = async () => {
@@ -64,46 +60,16 @@ export default function SuggestionScreen({ navigation }: Props) {
     }
   };
 
-  const handleToggleFavorite = async (productId: string) => {
-    try {
-      const userIdStr = await AsyncStorage.getItem("userId");
-      if (!userIdStr) {
-        Alert.alert("Thông báo", "Vui lòng đăng nhập để yêu thích sản phẩm.");
-        return;
-      }
-      const userId = parseInt(userIdStr, 10);
-      await axios.post(`${path}/favorites/toggle/${productId}`, { userId });
-
-      setFavoriteIds((prevIds) => {
-        if (prevIds.includes(productId)) {
-          return prevIds.filter((id) => id !== productId);
-        } else {
-          return [...prevIds, productId];
-        }
-      });
-    } catch (err) {
-      console.log("Lỗi toggle yêu thích:", err);
-    }
-  };
-
   useEffect(() => {
     const fetchAllData = async () => {
       try {
         setLoading(true);
-        const [feedResult] = await Promise.all([
-          fetchSuggestionFeed(),
-          fetchFavorites(),
-        ]);
-
-        // Map dữ liệu
-        const mappedFeedData = feedResult.map(
-          (feedItem: SuggestionFeedItem) => ({
-            ...feedItem,
-            sellingSuggestions: feedItem.sellingSuggestions.map(mapProductData),
-            buyingSuggestions: feedItem.buyingSuggestions.map(mapProductData),
-          })
-        );
-
+        const [feedResult] = await Promise.all([fetchSuggestionFeed(), fetchFavorites()]);
+        const mappedFeedData = feedResult.map((feedItem: SuggestionFeedItem) => ({
+          ...feedItem,
+          sellingSuggestions: feedItem.sellingSuggestions.map(mapProductData),
+          buyingSuggestions: feedItem.buyingSuggestions.map(mapProductData),
+        }));
         setFeedData(mappedFeedData);
       } catch (err: any) {
         console.error("Lỗi lấy feed gợi ý:", err.message);
@@ -115,7 +81,6 @@ export default function SuggestionScreen({ navigation }: Props) {
     fetchAllData();
   }, []);
 
-  // 2. [THÊM] Tính toán danh sách nút lọc (Tất cả, Giày dép, Laptop...)
   const filterCategories = useMemo(() => {
     const categories = feedData.map((item) => ({
       id: item.subCategory.id,
@@ -124,18 +89,13 @@ export default function SuggestionScreen({ navigation }: Props) {
     return [{ id: 0, name: "Tất cả" }, ...categories];
   }, [feedData]);
 
-  // 3. [THÊM] Lọc dữ liệu feedData theo nút đã chọn
   const filteredFeedData = useMemo(() => {
-    if (!selectedSubCatId || selectedSubCatId === 0) {
-      return feedData;
-    }
+    if (!selectedSubCatId || selectedSubCatId === 0) return feedData;
     return feedData.filter((item) => item.subCategory.id === selectedSubCatId);
   }, [feedData, selectedSubCatId]);
 
   const timeSince = (date: Date): string => {
-    const seconds = Math.floor(
-      (new Date().getTime() - date.getTime()) / 1000
-    );
+    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
     if (seconds < 60) return seconds < 5 ? "vừa xong" : `${seconds} giây trước`;
     let interval = seconds / 31536000;
     if (interval >= 1) return Math.floor(interval) + " năm trước";
@@ -151,30 +111,22 @@ export default function SuggestionScreen({ navigation }: Props) {
 
   const mapProductData = (item: any): Product => {
     const imageUrl = (() => {
-      if (!item.thumbnail_url && item.images?.length)
-        return item.images[0].image_url;
+      if (!item.thumbnail_url && item.images?.length) return item.images[0].image_url;
       const url = item.thumbnail_url || "";
-      if (url.startsWith("http")) return url;
-      return `${path}${url}`;
+      return url.startsWith("http") ? url : `${path}${url}`;
     })();
 
     let locationText = "Chưa rõ địa chỉ";
     if (item.address_json) {
       try {
-        const addr =
-          typeof item.address_json === "string"
-            ? JSON.parse(item.address_json)
-            : item.address_json;
+        const addr = typeof item.address_json === "string" ? JSON.parse(item.address_json) : item.address_json;
         if (addr.full) {
           locationText = addr.full;
         } else {
-          const parts = [addr.ward, addr.district, addr.province]
-            .filter(Boolean)
-            .slice(-2);
-          locationText =
-            parts.length > 0 ? parts.join(", ") : "Chưa rõ địa chỉ";
+          const parts = [addr.ward, addr.district, addr.province].filter(Boolean).slice(-2);
+          locationText = parts.length > 0 ? parts.join(", ") : "Chưa rõ địa chỉ";
         }
-      } catch (e) {
+      } catch {
         locationText = "Chưa rõ địa chỉ";
       }
     }
@@ -187,17 +139,14 @@ export default function SuggestionScreen({ navigation }: Props) {
     let tagText = "Không có danh mục";
     const categoryName = item.category?.name || null;
     const subCategoryName = item.subCategory?.name || null;
-    if (categoryName && subCategoryName)
-      tagText = `${categoryName} - ${subCategoryName}`;
+    if (categoryName && subCategoryName) tagText = `${categoryName} - ${subCategoryName}`;
     else if (categoryName) tagText = categoryName;
     else if (subCategoryName) tagText = subCategoryName;
 
     const priceDisplay = (() => {
       if (item.dealType?.name === "Miễn phí") return "Miễn phí";
       if (item.dealType?.name === "Trao đổi") return "Trao đổi";
-      return item.price
-        ? `${Number(item.price).toLocaleString("vi-VN")} đ`
-        : "Liên hệ";
+      return item.price ? `${Number(item.price).toLocaleString("vi-VN")} đ` : "Liên hệ";
     })();
 
     return {
@@ -261,7 +210,6 @@ export default function SuggestionScreen({ navigation }: Props) {
     };
   };
 
-  // 4. [THÊM] Render thanh lọc ngang
   const renderFilterBar = () => (
     <View className="py-3 bg-white border-b border-gray-100">
       <FlatList
@@ -271,23 +219,15 @@ export default function SuggestionScreen({ navigation }: Props) {
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={{ paddingHorizontal: 16 }}
         renderItem={({ item }) => {
-          const isSelected =
-            selectedSubCatId === item.id ||
-            (item.id === 0 && selectedSubCatId === null);
+          const isSelected = selectedSubCatId === item.id || (item.id === 0 && selectedSubCatId === null);
           return (
             <TouchableOpacity
               onPress={() => setSelectedSubCatId(item.id)}
               className={`mr-3 px-4 py-2 rounded-full border ${
-                isSelected
-                  ? "bg-blue-500 border-blue-500"
-                  : "bg-white border-gray-300"
+                isSelected ? "bg-blue-500 border-blue-500" : "bg-white border-gray-300"
               }`}
             >
-              <Text
-                className={`font-medium ${
-                  isSelected ? "text-white" : "text-gray-600"
-                }`}
-              >
+              <Text className={`font-medium ${isSelected ? "text-white" : "text-gray-600"}`}>
                 {item.name}
               </Text>
             </TouchableOpacity>
@@ -298,45 +238,22 @@ export default function SuggestionScreen({ navigation }: Props) {
   );
 
   const renderSuggestionSection = (item: SuggestionFeedItem) => {
-    const dataList =
-      activeTab === "sell"
-        ? item.sellingSuggestions
-        : item.buyingSuggestions;
+    const dataList = activeTab === "sell" ? item.sellingSuggestions : item.buyingSuggestions;
 
     return (
-      <View
-        key={item.subCategory.id}
-        className="mb-6 bg-white pb-4 border-b border-gray-100"
-      >
+      <View key={item.subCategory.id} className="mb-6 bg-white pb-4 border-b border-gray-100">
         <View className="flex-row justify-between items-center px-4 mb-3">
-          <Text className="text-lg font-bold text-gray-800">
-            {item.subCategory.name}
-          </Text>
+          <Text className="text-lg font-bold text-gray-800">{item.subCategory.name}</Text>
         </View>
 
         <View className="px-4">
           {dataList.length > 0 ? (
             <FlatList
               data={dataList}
-              numColumns={2}
+              numColumns={1}
               scrollEnabled={false}
-              columnWrapperStyle={{ justifyContent: "space-between" }}
               keyExtractor={(product) => product.id.toString()}
-              renderItem={({ item: product }) => (
-                <ProductCard
-                  product={product}
-                  onPress={() =>
-                    navigation.navigate("ProductDetail", { product: product })
-                  }
-                  isFavorite={favoriteIds.includes(String(product.id))}
-                  onToggleFavorite={() => handleToggleFavorite(product.id)}
-                  onPressPostType={(pt) => {
-                    if (pt.id == "1") navigation.navigate("SellProductScreen");
-                    else if (pt.id == "2")
-                      navigation.navigate("PurchaseRequestScreen");
-                  }}
-                />
-              )}
+              renderItem={renderSimpleProductItem}
             />
           ) : (
             <View className="bg-gray-50 p-4 rounded-lg items-center justify-center">
@@ -352,9 +269,29 @@ export default function SuggestionScreen({ navigation }: Props) {
     );
   };
 
+  const renderSimpleProductItem = ({ item }: { item: Product }) => (
+    <TouchableOpacity
+      className="flex-row items-center bg-white rounded-xl p-3 mb-3 shadow-sm border border-gray-100"
+      onPress={() => navigation.navigate("ProductDetail", { product: item })}
+    >
+      <Image source={{ uri: item.image }} className="w-20 h-20 rounded-lg" resizeMode="cover" />
+      <View className="flex-1 ml-3">
+        <Text className="text-base font-semibold text-gray-800 mb-1" numberOfLines={1}>
+          {item.name}
+        </Text>
+        <View className="flex-row items-center mb-1">
+          <Feather name="tag" size={12} color="#6b7280" />
+          <Text className="text-xs text-gray-500 ml-1" numberOfLines={1}>
+            {item.tag}
+          </Text>
+        </View>
+        <Text className="text-sm font-medium text-indigo-600">{item.price}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
   return (
     <SafeAreaView className="flex-1 bg-white">
-      {/* Header */}
       <View className="flex-row items-center p-4 border-b border-gray-200">
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Feather name="arrow-left" size={24} color="black" />
@@ -362,7 +299,6 @@ export default function SuggestionScreen({ navigation }: Props) {
         <Text className="text-xl font-bold ml-4">Gợi ý dành cho bạn</Text>
       </View>
 
-      {/* Tabs Bán/Mua */}
       <View className="flex-row">
         <TouchableOpacity
           onPress={() => setActiveTab("sell")}
@@ -370,11 +306,7 @@ export default function SuggestionScreen({ navigation }: Props) {
             activeTab === "sell" ? "border-blue-500" : "border-gray-300"
           }`}
         >
-          <Text
-            className={`font-bold ${
-              activeTab === "sell" ? "text-blue-500" : "text-gray-500"
-            }`}
-          >
+          <Text className={`font-bold ${activeTab === "sell" ? "text-blue-500" : "text-gray-500"}`}>
             Gợi ý Bán (Tìm người Mua)
           </Text>
         </TouchableOpacity>
@@ -384,34 +316,25 @@ export default function SuggestionScreen({ navigation }: Props) {
             activeTab === "buy" ? "border-blue-500" : "border-gray-300"
           }`}
         >
-          <Text
-            className={`font-bold ${
-              activeTab === "buy" ? "text-blue-500" : "text-gray-500"
-            }`}
-          >
+          <Text className={`font-bold ${activeTab === "buy" ? "text-blue-500" : "text-gray-500"}`}>
             Gợi ý Mua (Tìm người Bán)
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* 5. [THÊM] Hiển thị thanh lọc */}
       {!loading && feedData.length > 0 && renderFilterBar()}
 
-      {/* Danh sách gợi ý */}
       {loading ? (
         <ActivityIndicator size="large" color="#3b82f6" className="mt-20" />
       ) : (
         <ScrollView className="flex-1 mt-4">
           {filteredFeedData.length > 0 ? (
-            // SỬ DỤNG filteredFeedData thay vì feedData
             filteredFeedData.map(renderSuggestionSection)
           ) : (
             <Text className="text-center text-gray-500 mt-20 px-4">
-              Bạn chưa đăng tin nào, hãy đăng tin để chúng tôi cá nhân hoá gợi ý
-              cho bạn nhé!
+              Bạn chưa đăng tin nào, hãy đăng tin để chúng tôi cá nhân hoá gợi ý cho bạn nhé!
             </Text>
           )}
-          {/* Padding đáy */}
           <View className="h-10" />
         </ScrollView>
       )}
