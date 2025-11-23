@@ -113,7 +113,7 @@ const mapProductData = (item: any) => {
     authorName:
       item.author_name ||
       item.user?.name ||
-      item.user?.fullName ||
+      item.user?.nickname ||
       "Người dùng",
 
     image: imageUrl,

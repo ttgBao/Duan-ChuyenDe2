@@ -76,14 +76,21 @@ export default function NotificationScreen({ navigation }: Props) {
         );
       }
       const updated = await Promise.all(
-        data.map(async (n: Notification) => {
-          if (n.action?.name === "group_invitation") {
-            const localStatus = await getHandledInvitation(n.target_id);
-            if (localStatus) return { ...n, invitationStatus: localStatus };
+      data.map(async (n: Notification) => {
+        if (n.action?.name === "group_invitation") {
+          const localStatus = await getHandledInvitation(n.target_id);
+
+          if (n.is_read && localStatus) {
+            // Thông báo cũ: áp dụng trạng thái đã lưu
+            return { ...n, invitationStatus: localStatus };
+          } else {
+            // Thông báo mới: luôn hiện nút
+            return { ...n, invitationStatus: "pending" };
           }
-          return n;
-        })
-      );
+        }
+        return n;
+      })
+    );
       setNotifications(updated);
     } catch (error: any) {
       console.log("Lỗi khi tải thông báo:", error.message);

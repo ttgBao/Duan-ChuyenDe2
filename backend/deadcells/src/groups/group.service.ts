@@ -214,7 +214,7 @@ export class GroupService {
       postCount,
       owner: {
         id: group.owner_id,
-        name: group.owner?.fullName,
+        name: group.owner?.nickname,
         avatar: group.owner?.image,
       },
       userRole: role,
@@ -364,7 +364,7 @@ export class GroupService {
 
     return members.map((m) => ({
       id: m.user_id,
-      name: m.user.fullName,
+      name: m.user.nickname,
       email: m.user.email,
       avatar: m.user.image,
       role: Number(m.group_role_id) === 2 ? 'leader' : 'member',
@@ -387,7 +387,7 @@ export class GroupService {
 
     return pending.map((p) => ({
       user_id: p.user_id,
-      name: p.user.fullName,
+      name: p.user.nickname,
       email: p.user.email,
       avatar: p.user.image,
       requested_at: p.created_at,
@@ -543,7 +543,7 @@ export class GroupService {
       },
       inviter: {
         id: inv.inviter.id,
-        name: inv.inviter.fullName,
+        name: inv.inviter.nickname,
         avatar: inv.inviter.image,
       },
       created_at: inv.created_at,
@@ -635,19 +635,19 @@ export class GroupService {
 
     if (search && search.trim()) {
       queryBuilder.andWhere(
-        '(user.fullName ILIKE :search OR user.email ILIKE :search)',
+        '(user.nickname ILIKE :search OR user.email ILIKE :search)',
         { search: `%${search}%` },
       );
     }
 
     const users = await queryBuilder
-      .select(['user.id', 'user.fullName', 'user.email', 'user.image'])
+      .select(['user.id', 'user.nickname', 'user.email', 'user.image'])
       .limit(50)
       .getMany();
 
     return users.map((u) => ({
       id: u.id,
-      name: u.fullName,
+      name: u.nickname,
       email: u.email,
       avatar: u.image,
     }));
@@ -982,7 +982,7 @@ export class GroupService {
       user: p.user
         ? {
             id: p.user.id,
-            name: p.user.fullName,
+            name: p.user.nickname,
             email: p.user.email,
             avatar: p.user.image,
             phone: p.user.phone,

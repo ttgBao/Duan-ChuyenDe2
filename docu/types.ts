@@ -441,7 +441,7 @@ export type RatingData = {
   };
   ratedUser?: {
     id: number;
-    fullName: string;
+    nickname: string;
     image: string | null;
   };
 };
