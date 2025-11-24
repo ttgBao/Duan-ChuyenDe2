@@ -16,6 +16,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { path } from "../../config";
 
+// Định nghĩa kiểu dữ liệu sau khi parse CCCD
+// Chứa tất cả thông tin trích xuất được từ mã QR hoặc dữ liệu ảnh
+// Cho phép thêm key linh hoạt bằng [k: string]: any
+
 type ParsedCCCD = {
   fullName?: string;
   dob?: string;
@@ -26,8 +30,9 @@ type ParsedCCCD = {
   raw?: string;
   [k: string]: any;
 };
-
+// Component chính dùng để xác thực CCCD
 export default function VerifyCCCDScreen({ navigation }: any) {
+  // Quyền camera
   const [permission, requestPermission] = useCameraPermissions();
   const [scannedRaw, setScannedRaw] = useState<string | null>(null);
   const [parsed, setParsed] = useState<ParsedCCCD | null>(null);
@@ -308,11 +313,7 @@ export default function VerifyCCCDScreen({ navigation }: any) {
               <Text style={styles.hintText}>Giữ mã QR/CCCD trong khung để quét</Text>
             </View>
 
-            <View style={styles.cameraBottom}>
-              <TouchableOpacity onPress={handleCapturePhoto} style={styles.primaryBtn}>
-                <Text style={styles.primaryText}>Không có mã? Chụp ảnh</Text>
-              </TouchableOpacity>
-            </View>
+           
           </CameraView>
         </View>
       ) : (
