@@ -307,12 +307,6 @@ export default function VerifyCCCDScreen({ navigation }: any) {
             <View style={styles.scanArea}>
               <Text style={styles.hintText}>Giữ mã QR/CCCD trong khung để quét</Text>
             </View>
-
-            <View style={styles.cameraBottom}>
-              <TouchableOpacity onPress={handleCapturePhoto} style={styles.primaryBtn}>
-                <Text style={styles.primaryText}>Không có mã? Chụp ảnh</Text>
-              </TouchableOpacity>
-            </View>
           </CameraView>
         </View>
       ) : (
