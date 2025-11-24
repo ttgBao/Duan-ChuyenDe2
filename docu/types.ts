@@ -347,7 +347,7 @@ export type Comment = {
   created_at: string;
   user?: {
     id: string | number;
-    fullName?: string;
+    nickname?: string;
     image?: string;
   };
   children: Comment[];
@@ -376,7 +376,7 @@ export type Notification = {
   // Quan hệ: Người gây ra hành động
   actor: {
     id: number;
-    fullName: string;
+    nickname: string;
     image?: string;
   };
 
@@ -441,7 +441,7 @@ export type RatingData = {
   };
   ratedUser?: {
     id: number;
-    fullName: string;
+    nickname: string;
     image: string | null;
   };
 };

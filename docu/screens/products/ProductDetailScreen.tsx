@@ -126,9 +126,9 @@ export default function ProductDetailScreen() {
   useEffect(() => {
     const fetchRating = async () => {
       try {
-        console.log(product.authorName);
-        console.log(product.user?.avatar);
-        console.log("id", product.user_id);
+        // console.log(product.authorName);
+        // console.log(product.user?.avatar);
+        // console.log("id", product.user_id);
         const res = await fetch(
           `${path}/users/${product.user_id}/rating-average`
         );
@@ -380,7 +380,7 @@ export default function ProductDetailScreen() {
               activeOpacity={0.7}
             >
               <Text className="font-semibold text-sm">
-                {comment.user?.fullName || "Người dùng"}
+                {comment.user?.nickname || "Người dùng"}
               </Text>
             </TouchableOpacity>
 
@@ -853,7 +853,7 @@ export default function ProductDetailScreen() {
               />
               <View className="ml-3 flex-1">
                 <Text className="font-semibold">
-                  {product.authorName || "Người dùng"}
+                  {product.authorName || product.user?.name || "Người dùng"}
                 </Text>
                 <Text className="text-gray-500 text-xs">
                   đã bán {soldCount} lần
@@ -991,7 +991,7 @@ export default function ProductDetailScreen() {
                   className="text-gray-800 text-sm font-medium"
                   style={{ flexShrink: 1, flexWrap: "wrap" }}
                 >
-                  {product.dealType?.name || "Chưa rõ"}
+                  {product.dealType?.name ||  "Chưa rõ"}
                 </Text>
               </View>
 
@@ -1343,7 +1343,7 @@ export default function ProductDetailScreen() {
               {replyingTo && !editingComment && (
                 <View className="flex-row items-center justify-between mb-2 p-2 bg-gray-100 rounded-lg">
                   <Text className="text-gray-600 text-sm">
-                    Đang trả lời {replyingTo.user?.fullName || "Người dùng"}
+                    Đang trả lời {replyingTo.user?.nickname || "Người dùng"}
                   </Text>
                   <TouchableOpacity onPress={() => setReplyingTo(null)}>
                     <Ionicons name="close-circle" size={20} color="#999" />

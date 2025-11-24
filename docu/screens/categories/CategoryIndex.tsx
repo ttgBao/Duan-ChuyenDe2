@@ -6,41 +6,42 @@ import {
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Product, RootStackParamList } from "../../types";
 import { Feather } from "@expo/vector-icons";
-import ProductCard from "../../components/ProductCard";
 import Menu from "../../components/Menu";
 import axios from "axios";
 import { path } from "../../config";
 
 type Props = NativeStackScreenProps<RootStackParamList, "CategoryIndex">;
 
+const timeSince = (date: Date): string => {
+  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+  if (seconds < 60) return seconds < 5 ? "vừa xong" : `${seconds} giây trước`;
+  let interval = seconds / 31536000;
+  if (interval >= 1) return Math.floor(interval) + " năm trước";
+  interval = seconds / 2592000;
+  if (interval >= 1) return Math.floor(interval) + " tháng trước";
+  interval = seconds / 86400;
+  if (interval >= 1) return Math.floor(interval) + " ngày trước";
+  interval = seconds / 3600;
+  if (interval >= 1) return Math.floor(interval) + " giờ trước";
+  interval = seconds / 60;
+  if (interval >= 1) return Math.floor(interval) + " phút trước";
+  return Math.floor(seconds) > 5
+    ? Math.floor(seconds) + " giây trước"
+    : "vừa xong";
+};
+
 const CategoryIndex: React.FC<Props> = ({ route, navigation }) => {
   const { categoryId, categoryName } = route.params ?? {};
+
   const [query, setQuery] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const timeSince = (date: Date): string => {
-    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-    if (seconds < 60) return seconds < 5 ? "vừa xong" : `${seconds} giây trước`;
-    let interval = seconds / 31536000;
-    if (interval >= 1) return Math.floor(interval) + " năm trước";
-    interval = seconds / 2592000;
-    if (interval >= 1) return Math.floor(interval) + " tháng trước";
-    interval = seconds / 86400;
-    if (interval >= 1) return Math.floor(interval) + " ngày trước";
-    interval = seconds / 3600;
-    if (interval >= 1) return Math.floor(interval) + " giờ trước";
-    interval = seconds / 60;
-    if (interval >= 1) return Math.floor(interval) + " phút trước";
-    return Math.floor(seconds) > 5
-      ? Math.floor(seconds) + " giây trước"
-      : "vừa xong";
-  };
 
   useEffect(() => {
     if (!categoryId) {
@@ -56,18 +57,7 @@ const CategoryIndex: React.FC<Props> = ({ route, navigation }) => {
       .get(`${path}/products?category_id=${categoryId}`)
       .then((res) => {
         const rawData = Array.isArray(res.data) ? res.data : [res.data];
-
         const mapped: Product[] = rawData.map((item: any) => {
-          console.log("CategoryIndex productType:", item.productType);
-          console.log(
-            "API Response Item:",
-            item.id,
-            "Author:",
-            item.author,
-            "Year:",
-            item.year
-          );
-          // URL ảnh
           const imageUrl = item.thumbnail_url?.startsWith("http")
             ? item.thumbnail_url
             : item.thumbnail_url
@@ -76,7 +66,6 @@ const CategoryIndex: React.FC<Props> = ({ route, navigation }) => {
                 ? `${path}${item.images[0].image_url}`
                 : "https://cdn-icons-png.flaticon.com/512/8146/8146003.png";
 
-          // Địa chỉ
           let locationText = "Chưa rõ địa chỉ";
           if (item.address_json) {
             try {
@@ -95,13 +84,11 @@ const CategoryIndex: React.FC<Props> = ({ route, navigation }) => {
             }
           }
 
-          // Thời gian
           const createdAt = item.created_at
             ? new Date(new Date(item.created_at).getTime() + 7 * 60 * 60 * 1000)
             : new Date();
           const timeDisplay = timeSince(createdAt);
 
-          // Tag
           const categoryNameItem = item.category?.name || null;
           const subCategoryObj = item.subCategory
             ? {
@@ -113,6 +100,7 @@ const CategoryIndex: React.FC<Props> = ({ route, navigation }) => {
                 source_detail: item.subCategory.source_detail,
               }
             : undefined;
+
           let tagText = "Không có danh mục";
           if (categoryNameItem && subCategoryObj?.name)
             tagText = `${categoryNameItem} - ${subCategoryObj.name}`;
@@ -135,85 +123,45 @@ const CategoryIndex: React.FC<Props> = ({ route, navigation }) => {
             tag: tagText,
             authorName: item.user?.nickname || item.user?.name || "Ẩn danh",
             user_id: item.user?.id ?? item.user_id ?? 0,
-
             category: item.category || null,
-
-            subCategory: item.subCategory
-              ? {
-                  id: item.subCategory.id,
-                  name: item.subCategory.name,
-                  parent_category_id: item.subCategory.parent_category_id,
-                  source_table: item.subCategory.source_table,
-                  source_id: item.subCategory.source_id,
-                }
-              : null,
-
+            subCategory: item.subCategory || null,
             category_change: item.category_change || null,
             sub_category_change: item.sub_category_change || null,
-
             imageCount: item.images?.length || (imageUrl ? 1 : 0),
             isFavorite: false,
             images: item.images || [],
             description: item.description || "",
-
             postType: item.postType || null,
             condition: item.condition || null,
             dealType: item.dealType || null,
-
             productStatus: item.productStatus || null,
-
-            productType:
-              item.productType && item.productType.name
-                ? item.productType
-                : null,
-            origin: item.origin && item.origin.name ? item.origin : null,
-            material:
-              item.material && item.material.name ? item.material : null,
-            size: item.size && item.size.name ? item.size : null,
-            brand: item.brand && item.brand.name ? item.brand : null,
-            color: item.color && item.color.name ? item.color : null,
-            capacity:
-              item.capacity && item.capacity.name ? item.capacity : null,
-            warranty:
-              item.warranty && item.warranty.name ? item.warranty : null,
-            productModel:
-              item.productModel && item.productModel.name
-                ? item.productModel
-                : null,
-            processor:
-              item.processor && item.processor.name ? item.processor : null,
-            ramOption:
-              item.ramOption && item.ramOption.name ? item.ramOption : null,
-            storageType:
-              item.storageType && item.storageType.name
-                ? item.storageType
-                : null,
-            graphicsCard:
-              item.graphicsCard && item.graphicsCard.name
-                ? item.graphicsCard
-                : null,
-            breed: item.breed && item.breed.name ? item.breed : null,
-            ageRange:
-              item.ageRange && item.ageRange.name ? item.ageRange : null,
-            gender: item.gender && item.gender.name ? item.gender : null,
-            engineCapacity:
-              item.engineCapacity && item.engineCapacity.name
-                ? item.engineCapacity
-                : null,
+            productType: item.productType || null,
+            origin: item.origin || null,
+            material: item.material || null,
+            size: item.size || null,
+            brand: item.brand || null,
+            color: item.color || null,
+            capacity: item.capacity || null,
+            warranty: item.warranty || null,
+            productModel: item.productModel || null,
+            processor: item.processor || null,
+            ramOption: item.ramOption || null,
+            storageType: item.storageType || null,
+            graphicsCard: item.graphicsCard || null,
+            breed: item.breed || null,
+            ageRange: item.ageRange || null,
+            gender: item.gender || null,
+            engineCapacity: item.engineCapacity || null,
             mileage: item.mileage || null,
-
             address_json: item.address_json || { full: locationText },
             phone: item.user?.phone || null,
             author: item.author || null,
             year: item.year || null,
-
             created_at: item.created_at || new Date().toISOString(),
-            updated_at: item.updated_at || undefined, // (optional '?' có thể là undefined)
-
-            // Sửa fallback sang 'null'
+            updated_at: item.updated_at || undefined,
             sub_category_id: item.sub_category_id || null,
-            status_id: item.status_id?.toString() || undefined, // (optional '?' có thể là undefined)
-            visibility_type: item.visibility_type?.toString() || undefined, // (optional '?' có thể là undefined)
+            status_id: item.status_id?.toString() || undefined,
+            visibility_type: item.visibility_type?.toString() || undefined,
             group_id: item.group_id || null,
           };
         });
@@ -245,6 +193,36 @@ const CategoryIndex: React.FC<Props> = ({ route, navigation }) => {
       </View>
     );
   }
+
+  const renderProductListItem = ({ item }: { item: Product }) => (
+    <TouchableOpacity
+      className="flex-row items-center bg-white rounded-xl p-3 mb-3 shadow-sm border border-gray-100"
+      onPress={() => navigation.navigate("ProductDetail", { product: item })}
+    >
+      <Image
+        source={{ uri: item.image }}
+        className="w-20 h-20 rounded-lg"
+        resizeMode="cover"
+      />
+      <View className="flex-1 ml-3">
+        <Text
+          className="text-base font-semibold text-gray-800 mb-1"
+          numberOfLines={1}
+        >
+          {item.name}
+        </Text>
+        <View className="flex-row items-center mb-1">
+          <Feather name="tag" size={12} color="#6b7280" />
+          <Text className="text-xs text-gray-500 ml-1" numberOfLines={1}>
+            {item.tag}
+          </Text>
+        </View>
+        <Text className="text-sm font-medium text-indigo-600">
+          {item.price}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <View className="flex-1 bg-white">
@@ -292,8 +270,7 @@ const CategoryIndex: React.FC<Props> = ({ route, navigation }) => {
           data={filtered}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ padding: 12, paddingBottom: 120 }}
-          numColumns={2}
-          columnWrapperStyle={{ justifyContent: "space-between" }}
+          numColumns={1}
           ListEmptyComponent={
             <View className="flex-1 justify-center items-center p-8">
               <Text className="text-center text-slate-500 text-lg mb-2">
@@ -304,20 +281,7 @@ const CategoryIndex: React.FC<Props> = ({ route, navigation }) => {
               </Text>
             </View>
           }
-          renderItem={({ item }) => (
-            <ProductCard
-              product={item}
-              onPress={() =>
-                navigation.navigate("ProductDetail", { product: item })
-              }
-              onToggleFavorite={() => console.log("Yêu thích:", item.name)}
-              onPressPostType={(pt) => {
-                if (pt.id == "1") navigation.navigate("SellProductScreen");
-                else if (pt.id == "2")
-                  navigation.navigate("PurchaseRequestScreen");
-              }}
-            />
-          )}
+          renderItem={renderProductListItem}
         />
       )}
 

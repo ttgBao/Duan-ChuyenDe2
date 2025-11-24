@@ -76,14 +76,21 @@ export default function NotificationScreen({ navigation }: Props) {
         );
       }
       const updated = await Promise.all(
-        data.map(async (n: Notification) => {
-          if (n.action?.name === "group_invitation") {
-            const localStatus = await getHandledInvitation(n.target_id);
-            if (localStatus) return { ...n, invitationStatus: localStatus };
+      data.map(async (n: Notification) => {
+        if (n.action?.name === "group_invitation") {
+          const localStatus = await getHandledInvitation(n.target_id);
+
+          if (n.is_read && localStatus) {
+            // Thông báo cũ: áp dụng trạng thái đã lưu
+            return { ...n, invitationStatus: localStatus };
+          } else {
+            // Thông báo mới: luôn hiện nút
+            return { ...n, invitationStatus: "pending" };
           }
-          return n;
-        })
-      );
+        }
+        return n;
+      })
+    );
       setNotifications(updated);
     } catch (error: any) {
       console.log("Lỗi khi tải thông báo:", error.message);
@@ -299,7 +306,7 @@ export default function NotificationScreen({ navigation }: Props) {
     // Nếu là lời mời nhóm
     if (item.action?.name === "group_invitation") {
       return (
-        <View
+        <TouchableOpacity
           className={`p-4 border-b border-gray-100 ${!item.is_read ? "bg-blue-50" : "bg-white"}`}
         >
           <View className="flex-row items-start">
@@ -307,7 +314,7 @@ export default function NotificationScreen({ navigation }: Props) {
               source={
                 item.actor?.image
                   ? { uri: item.actor.image }
-                  : require("../../assets/khi.png")
+                  : require("../../assets/default.png")
               }
               className="w-12 h-12 rounded-full"
             />
@@ -322,7 +329,7 @@ export default function NotificationScreen({ navigation }: Props) {
 
               <Text className="text-sm text-gray-700 mb-3">
                 <Text className="font-semibold">
-                  {item.actor?.fullName || "???"}
+                  {item.actor?.nickname || "???"}
                 </Text>
                 đã mời bạn tham gia nhóm
                 <Text className="font-semibold">{item.group?.name || ""}</Text>
@@ -378,14 +385,14 @@ export default function NotificationScreen({ navigation }: Props) {
               <View className="w-2.5 h-2.5 bg-blue-500 rounded-full ml-2 mt-1" />
             )}
           </View>
-        </View>
+        </TouchableOpacity>
       );
     }
 
     // Các loại thông báo khác
     const formatMessage = (item: Notification) => {
       const actorName = (
-        <Text className="font-bold">{item.actor?.fullName || "Một người"}</Text>
+        <Text className="font-bold">{item.actor?.nickname || "Một người"}</Text>
       );
       const productName = (
         <Text className="font-bold">{item.product?.name || "bài đăng"}</Text>

@@ -219,18 +219,18 @@ export class UsersService {
       .andWhere('user.role_id = :roleId', { roleId: 2 }); // chỉ lấy user
 
     if (search) {
-      query.andWhere('unaccent(user.fullName) ILIKE unaccent(:search)', {
+      query.andWhere('unaccent(user.nickname) ILIKE unaccent(:search)', {
         search: `%${search}%`,
       });
     }
 
     const users = await query
-      .select(['user.id', 'user.fullName', 'user.image'])
+      .select(['user.id', 'user.nickname', 'user.image'])
       .getMany();
 
     return users.map((u) => ({
       id: u.id,
-      name: u.fullName,
+      name: u.nickname,
       avatar: u.image,
     }));
   }
@@ -306,7 +306,7 @@ export class UsersService {
       createdAt: r.created_at,
       reviewer: {
         id: r.reviewer.id,
-        name: r.reviewer.fullName,
+        name: r.reviewer.nickname,
         avatar: r.reviewer.image,
       },
     }));
@@ -391,7 +391,7 @@ export class UsersService {
       createdAt: r.created_at,
       ratedUser: {
         id: r.ratedUser.id,
-        fullName: r.ratedUser.fullName,
+        nickname: r.ratedUser.nickname,
         image: r.ratedUser.image,
       },
     }));

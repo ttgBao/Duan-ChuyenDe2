@@ -20,6 +20,7 @@ import { path } from "../../config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { RootStackParamList } from "../../types";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import Menu from "../../components/Menu";
 
 type GroupDetailScreenProps = NativeStackScreenProps<
   RootStackParamList,
@@ -757,6 +758,9 @@ export default function GroupDetailScreen({
           </TouchableWithoutFeedback>
         </Modal>
       )}
+      <View className="absolute bottom-0 left-0 right-0">
+            <Menu />
+      </View>
     </SafeAreaView>
   );
 }

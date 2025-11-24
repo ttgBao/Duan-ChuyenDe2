@@ -1,6 +1,4 @@
-// Menu.tsx
 import { View, Text, TouchableOpacity } from "react-native";
-import { useState, useEffect } from "react";
 import {
   FontAwesome,
   Feather,
@@ -8,14 +6,14 @@ import {
   MaterialIcons,
 } from "@expo/vector-icons";
 import "../global.css";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useNavigationState } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React from "react";
 import { useChat } from "./ChatContext";
 import { io } from "socket.io-client";
-import { path } from "../config"; // ✅ nhớ import path server (VD: http://192.168.x.x:3000)
+import { path } from "../config";
+import React, { useState, useEffect } from "react";
 
 export default function Menu() {
   const navigation =
@@ -25,18 +23,17 @@ export default function Menu() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // ✅ Lấy unreadCount từ ChatContext
-  const { unreadCount } = useChat();
+  const { unreadCount, setUnreadCount } = useChat();
 
   // Theo dõi thay đổi route để tô màu tab hiện tại
+  const routeName = useNavigationState((state) => {
+    const route = state.routes[state.index];
+    return route?.name?.toLowerCase() || "home";
+  });
+
   useEffect(() => {
-    const unsub = navigation.addListener("state", () => {
-      const state = navigation.getState();
-      const route = state.routes[state.index];
-      const name = route?.name ?? "Home";
-      setActiveTab(name.toString().toLowerCase());
-    });
-    return unsub;
-  }, [navigation]);
+    setActiveTab(routeName);
+  }, [routeName]);
 
   // Kiểm tra đăng nhập
   useEffect(() => {
@@ -45,6 +42,32 @@ export default function Menu() {
       setIsLoggedIn(!!token);
     };
     checkLogin();
+  }, []);
+
+  // ✅ Kết nối socket để nhận số tin chưa đọc
+  useEffect(() => {
+    const connectSocket = async () => {
+      const token = await AsyncStorage.getItem("token");
+      const userId = await AsyncStorage.getItem("userId");
+      if (!token || !userId) return;
+
+      const socket = io(`${path}`, {
+        auth: { userId, token },
+        transports: ["websocket"],
+      });
+
+      socket.on("unreadCount", (data) => {
+        setUnreadCount(data.count || 0);
+      });
+
+      socket.emit("getUnreadCount", { userId });
+
+      return () => {
+        socket.disconnect();
+      };
+    };
+
+    connectSocket();
   }, []);
 
   return (

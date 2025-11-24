@@ -42,7 +42,7 @@ const mapProductData = (item: any): Product => {
     ...item,
     id: item.id.toString(),
     image: imageUrl.startsWith("http") ? imageUrl : `${path}${imageUrl}`,
-    authorName: item.user?.fullName || item.user?.name || "Người dùng",
+    authorName: item.user?.nickname || item.user?.name || "Người dùng",
     product_status_id: item.product_status_id
       ? parseInt(item.product_status_id, 10)
       : 1,

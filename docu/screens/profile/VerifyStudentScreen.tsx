@@ -312,8 +312,6 @@ export default function VerifyCCCDScreen({ navigation }: any) {
             <View style={styles.scanArea}>
               <Text style={styles.hintText}>Giữ mã QR/CCCD trong khung để quét</Text>
             </View>
-
-           
           </CameraView>
         </View>
       ) : (
