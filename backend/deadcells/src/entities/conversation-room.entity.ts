@@ -30,7 +30,7 @@ export class ConversationRoom {
   @Column({ type: 'text', nullable: true })
   group_avatar: string | null;
 
-  @ManyToOne(() => Group)
+  @ManyToOne(() => Group, {onDelete: "CASCADE"})
   @JoinColumn({ name: 'group_id' })
   group: Group;
 
