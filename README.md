@@ -2,6 +2,13 @@
 
 A comprehensive mobile application platform designed for students (specifically tailored for Cao Đẳng CN Thủ Đức - TDC) to effortlessly buy, sell, and exchange second-hand goods. The platform integrates a powerful AI assistant that helps users automatically generate product descriptions, suggest market prices, and categorize items simply by uploading a product image.
 
+## 🎨 Figma Design
+
+Scan the QR code below to view the Figma design for this project:
+
+<img src="./assets/qr_figma.png" width="300" alt="Figma QR Code" />
+
+
 ## 🚀 Features
 
 * **Smart Product Posting:** Leverage AI to automatically scan images, generate SEO-friendly descriptions, and suggest competitive prices.
