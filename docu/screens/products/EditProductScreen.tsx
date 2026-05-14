@@ -1417,7 +1417,7 @@ export default function EditProductScreen() {
           {isLoading && ( // 🚀 Thêm loading khi xử lý ảnh
             <ActivityIndicator
               size="small"
-              color="#8c7ae6"
+              color="#3366FF"
               style={{ marginTop: 10 }}
             />
           )}
@@ -1450,7 +1450,7 @@ export default function EditProductScreen() {
                         ?.name || "Không xác định"
                     : "Chọn tình trạng"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>
@@ -1462,7 +1462,7 @@ export default function EditProductScreen() {
         {/* Loading Giống */}
         {isLoadingBreeds && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải danh sách giống...</Text>
           </View>
         )}
@@ -1485,7 +1485,7 @@ export default function EditProductScreen() {
                         ?.name ?? "Không xác định")
                     : "Chọn giống"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn giống của thú cưng</Text>
@@ -1495,7 +1495,7 @@ export default function EditProductScreen() {
         {/* Loading Độ tuổi */}
         {isLoadingAgeRanges && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải độ tuổi...</Text>
           </View>
         )}
@@ -1519,7 +1519,7 @@ export default function EditProductScreen() {
                       )?.name ?? "Không xác định")
                     : "Chọn độ tuổi"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn độ tuổi của thú cưng</Text>
@@ -1529,7 +1529,7 @@ export default function EditProductScreen() {
         {/* Loading Giới tính */}
         {isLoadingGenders && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải giới tính...</Text>
           </View>
         )}
@@ -1552,7 +1552,7 @@ export default function EditProductScreen() {
                         ?.name ?? "Không xác định")
                     : "Chọn giới tính"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn giới tính của thú cưng</Text>
@@ -1562,7 +1562,7 @@ export default function EditProductScreen() {
         {/* Loading Loại sản phẩm */}
         {isLoadingProductTypes && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải loại sản phẩm...</Text>
           </View>
         )}
@@ -1584,7 +1584,7 @@ export default function EditProductScreen() {
                       : "Chọn loại sản phẩm"}
                   </Text>
                 </ScrollView>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn loại sản phẩm của bạn</Text>
@@ -1594,7 +1594,7 @@ export default function EditProductScreen() {
         {/* Loading Hãng */}
         {isLoadingBrands && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải danh sách hãng...</Text>
           </View>
         )}
@@ -1617,7 +1617,7 @@ export default function EditProductScreen() {
                         ?.name ?? "Không xác định")
                     : "Chọn hãng"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn hãng sản xuất</Text>
@@ -1627,7 +1627,7 @@ export default function EditProductScreen() {
         {/* Loading Dòng */}
         {isLoadingModels && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải dòng...</Text>
           </View>
         )}
@@ -1651,7 +1651,7 @@ export default function EditProductScreen() {
                       )?.name ?? "Không xác định")
                     : "Chọn dòng"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn dòng (model)</Text>
@@ -1660,7 +1660,7 @@ export default function EditProductScreen() {
         {/* Loading Dung tích xe */}
         {isLoadingEngineCapacities && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải dung tích xe...</Text>
           </View>
         )}
@@ -1684,7 +1684,7 @@ export default function EditProductScreen() {
                       )?.name ?? "Không xác định")
                     : "Chọn dung tích xe (cc)"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn dung tích (cc) của xe</Text>
@@ -1713,7 +1713,7 @@ export default function EditProductScreen() {
         {/* Loading Bộ vi xử lý */}
         {isLoadingProcessors && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải bộ vi xử lý...</Text>
           </View>
         )}
@@ -1737,7 +1737,7 @@ export default function EditProductScreen() {
                       )?.name ?? "Không xác định")
                     : "Chọn bộ vi xử lý"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn bộ vi xử lý (CPU)</Text>
@@ -1747,7 +1747,7 @@ export default function EditProductScreen() {
         {/* Loading RAM */}
         {isLoadingRamOptions && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải tùy chọn RAM...</Text>
           </View>
         )}
@@ -1771,7 +1771,7 @@ export default function EditProductScreen() {
                       )?.name ?? "Không xác định")
                     : "Chọn dung lượng RAM"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn dung lượng RAM</Text>
@@ -1781,7 +1781,7 @@ export default function EditProductScreen() {
         {/* Loading Loại ổ cứng */}
         {isLoadingStorageTypes && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải loại ổ cứng...</Text>
           </View>
         )}
@@ -1805,7 +1805,7 @@ export default function EditProductScreen() {
                       )?.name ?? "Không xác định")
                     : "Chọn loại ổ cứng"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn loại ổ cứng (SSD, HDD)</Text>
@@ -1815,7 +1815,7 @@ export default function EditProductScreen() {
         {/* Loading Card màn hình */}
         {isLoadingGraphicsCards && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải card màn hình...</Text>
           </View>
         )}
@@ -1839,7 +1839,7 @@ export default function EditProductScreen() {
                       )?.name ?? "Không xác định")
                     : "Chọn card màn hình"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn card màn hình (GPU)</Text>
@@ -1851,7 +1851,7 @@ export default function EditProductScreen() {
         {/* Loading Màu sắc */}
         {isLoadingColors && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải màu sắc...</Text>
           </View>
         )}
@@ -1874,7 +1874,7 @@ export default function EditProductScreen() {
                         ?.name ?? "Không xác định")
                     : "Chọn màu sắc"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn màu sắc sản phẩm</Text>
@@ -1884,7 +1884,7 @@ export default function EditProductScreen() {
         {/* Loading Dung lượng */}
         {isLoadingCapacities && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải dung lượng...</Text>
           </View>
         )}
@@ -1908,7 +1908,7 @@ export default function EditProductScreen() {
                       )?.name ?? "Không xác định")
                     : "Chọn dung lượng"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn dung lượng (ROM)</Text>
@@ -1918,7 +1918,7 @@ export default function EditProductScreen() {
         {/* Loading Bảo hành */}
         {isLoadingWarranties && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải bảo hành...</Text>
           </View>
         )}
@@ -1942,7 +1942,7 @@ export default function EditProductScreen() {
                       )?.name ?? "Không xác định")
                     : "Chọn tình trạng bảo hành"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn tình trạng bảo hành</Text>
@@ -1952,7 +1952,7 @@ export default function EditProductScreen() {
         {/* Loading Kích cỡ */}
         {isLoadingSizes && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải kích cỡ...</Text>
           </View>
         )}
@@ -1975,7 +1975,7 @@ export default function EditProductScreen() {
                         ?.name ?? "Không xác định")
                     : "Chọn kích cỡ"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn kích cỡ</Text>
@@ -1985,7 +1985,7 @@ export default function EditProductScreen() {
         {/* Loading Chất liệu */}
         {isLoadingMaterials && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải chất liệu...</Text>
           </View>
         )}
@@ -2009,7 +2009,7 @@ export default function EditProductScreen() {
                       )?.name ?? "Không xác định")
                     : "Chọn chất liệu"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn chất liệu của sản phẩm</Text>
@@ -2019,7 +2019,7 @@ export default function EditProductScreen() {
         {/* Loading Xuất xứ */}
         {isLoadingOrigins && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải xuất xứ...</Text>
           </View>
         )}
@@ -2042,7 +2042,7 @@ export default function EditProductScreen() {
                         ?.name ?? "Không xác định")
                     : "Chọn xuất xứ"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn xuất xứ của sản phẩm</Text>
@@ -2095,7 +2095,7 @@ export default function EditProductScreen() {
                     )?.name || "Không xác định"
                   : "Chọn hình thức"}
               </Text>
-              <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+              <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
             </View>
           </TouchableOpacity>
           {dealTypeId === 1 && (
@@ -2190,7 +2190,7 @@ export default function EditProductScreen() {
                     "Không xác định"
                   : "Toàn trường"}
               </Text>
-              <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+              <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
             </View>
           </TouchableOpacity>
           <Text style={styles.helperText}>
@@ -2225,7 +2225,7 @@ export default function EditProductScreen() {
                     <MaterialCommunityIcons
                       name="check-circle"
                       size={20}
-                      color="#8c7ae6"
+                      color="#3366FF"
                     />
                   )}
                 </TouchableOpacity>
@@ -2843,7 +2843,7 @@ export default function EditProductScreen() {
                   <MaterialCommunityIcons
                     name="check-circle"
                     size={20}
-                    color="#8c7ae6"
+                    color="#3366FF"
                   />
                 )}
               </TouchableOpacity>
@@ -2868,7 +2868,7 @@ export default function EditProductScreen() {
                     <MaterialCommunityIcons
                       name="check-circle"
                       size={20}
-                      color="#8c7ae6"
+                      color="#3366FF"
                     />
                   )}
                 </TouchableOpacity>
@@ -2930,7 +2930,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 4,
-    backgroundColor: "#8c7ae6",
+    backgroundColor: "#3366FF",
     elevation: 4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
@@ -3141,7 +3141,7 @@ const styles = StyleSheet.create({
   modalOptionSelected: {
     backgroundColor: "#f0f9ff",
     borderLeftWidth: 4,
-    borderLeftColor: "#8c7ae6",
+    borderLeftColor: "#3366FF",
   },
   modalOptionText: {
     fontSize: 16,
@@ -3177,7 +3177,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   radioOptionSelected: {
-    borderColor: "#8c7ae6",
+    borderColor: "#3366FF",
     backgroundColor: "#f0f9ff",
   },
   radioOptionText: {
@@ -3186,6 +3186,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   radioOptionTextSelected: {
-    color: "#8c7ae6",
+    color: "#3366FF",
   },
 });

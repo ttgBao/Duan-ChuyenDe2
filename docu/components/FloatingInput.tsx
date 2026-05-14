@@ -34,7 +34,7 @@ const FloatingInput = forwardRef<TextInput, FloatingInputProps>(function Floatin
         value={value}
         onChangeText={onChangeText}
         secureTextEntry={secureTextEntry}
-        className={`w-full h-[50px] px-5 rounded-xl transition-all duration-300 pb-1 ${
+        className={`w-full h-[50px] px-5 rounded-xl pb-1 ${
           isActive ? "border-2 border-black" : "border border-gray-500"
         } ${inputClassName ?? ""}`}
         onFocus={() => setIsFocused(true)}
@@ -44,19 +44,19 @@ const FloatingInput = forwardRef<TextInput, FloatingInputProps>(function Floatin
 
       <View
         pointerEvents="none"
-        className={`absolute flex flex-row transition-all duration-300 ${
+        className={`absolute flex flex-row ${
           isActive ? "top-1 left-5" : "top-4 left-5"
         }`}
       >
         <Text
-          className={`font-bold transition-all duration-300 ${
+          className={`font-bold ${
             isActive ? "text-[10px]" : "text-[14px] text-gray-500"
           }`}
         >
           {label}
         </Text>
         <Text
-          className={`text-[red] transition-all duration-300 ${
+          className={`text-[red] ${
             isActive ? "text-[10px] ml-1" : "text-[14px] ml-1"
           }`}
         >

@@ -725,6 +725,11 @@ export class GroupService {
     const group = await this.groupRepo.findOne({ where: { id: groupId } });
     if (!group) throw new NotFoundException('Nhóm không tồn tại');
 
+    const isMember = await this.isMember(groupId, userId);
+    if (!isMember) {
+      throw new ForbiddenException('Bạn phải là thành viên của nhóm để xem bài viết');
+    }
+
     const products = await this.productRepo.find({
       where: { group_id: groupId, productStatus: { id: 2 } },
       relations: [

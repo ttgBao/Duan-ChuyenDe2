@@ -610,5 +610,40 @@ export class NotificationService {
     }
   }
 
-  
+  // HÀM: Gửi thông báo khi có sản phẩm phù hợp được đăng (Matching)
+  async notifyMatchingUsers(newProduct: Product, matchingUserIds: number[]) {
+    if (!matchingUserIds || matchingUserIds.length === 0) return;
+
+    try {
+      const ACTION_NAME = 'matching_product_found';
+
+      let action = await this.actionRepo.findOne({ where: { name: ACTION_NAME } });
+      if (!action) {
+        this.logger.log(`Action '${ACTION_NAME}' chưa tồn tại, đang tạo mới...`);
+        const newAction = this.actionRepo.create({ name: ACTION_NAME });
+        action = await this.actionRepo.save(newAction);
+      }
+
+      const targetType = await this.targetTypeRepo.findOneByOrFail({ name: 'product' });
+
+      const notifications = matchingUserIds.map((userId) => {
+        if (userId === newProduct.user_id) return null;
+
+        const dto: CreateNotificationDto = {
+          userId: userId, // Người nhận: Người đang tìm kiếm / đăng sản phẩm trước đó
+          actorId: Number(newProduct.user_id), // Người gây ra: Người đăng sản phẩm mới
+          actionId: action.id,
+          targetTypeId: targetType.id,
+          targetId: newProduct.id, 
+          productId: newProduct.id,
+        };
+        return this.create(dto);
+      });
+
+      await Promise.all(notifications.filter(n => n !== null));
+      this.logger.log(`Đã gửi thông báo "${ACTION_NAME}" tới ${matchingUserIds.length} người dùng.`);
+    } catch (error) {
+      this.logger.error(`Lỗi gửi thông báo matching_product_found: ${error.message}`);
+    }
+  }
 }

@@ -47,11 +47,11 @@ export class CategoryService {
     const categories = await this.categoryRepo.find();
     const subCategories = await this.subCategoryRepo.find();
 
-    // Tạo map: key là parent_category_id (có thể null), value là mảng sub
+    // Tạo map: key là category_id, value là mảng sub
     const subMap = new Map<string | number | null, SubCategory[]>();
 
     subCategories.forEach((sub) => {
-      const parentId = sub.parent_category_id ?? null;
+      const parentId = sub.category_id ?? null;
       if (!subMap.has(parentId)) {
         subMap.set(parentId, []);
       }

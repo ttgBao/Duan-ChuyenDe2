@@ -70,23 +70,7 @@ export class ProductController {
     return this.productService.getSuggestionFeed(userId);
   }
 
-  // Gợi ý khi đăng bán
-  @Get('suggest/selling/:subCategoryId')
-  async suggestForSelling(
-    @Param('subCategoryId') subCategoryId: number,
-    @Query('userId') userId: number,
-  ) {
-    return this.productService.suggestForSelling(subCategoryId, userId);
-  }
 
-  // Gợi ý khi đăng mua
-  @Get('suggest/buying/:subCategoryId')
-  async suggestForBuying(
-    @Param('subCategoryId') subCategoryId: number,
-    @Query('userId') userId: number,
-  ) {
-    return this.productService.suggestForBuying(subCategoryId, userId);
-  }
 
   // 🟢 Lấy danh sách sản phẩm "Miễn phí" (loại trừ sản phẩm của user hiện tại)
   @Get('free')
@@ -145,6 +129,28 @@ async searchProducts(@Query() query: SearchProductDto) {
   @Delete(':id')
   hardDelete(@Param('id', ParseIntPipe) id: number, @Request() req) {
     return this.productService.hardDeleteProduct(id, req.user);
+  }
+
+  // === GỢI Ý NGƯỜI MUA DÀNH CHO NGƯỜI BÁN ===
+  @Get('suggest/selling/:subCategoryId')
+  @UseGuards(JwtAuthGuard)
+  async suggestForSelling(
+    @Param('subCategoryId', ParseIntPipe) subCategoryId: number,
+    @Req() req,
+  ) {
+    const userId = req.user.id;
+    return this.productService.suggestForSelling(subCategoryId, userId);
+  }
+
+  // === GỢI Ý NGƯỜI BÁN DÀNH CHO NGƯỜI MUA ===
+  @Get('suggest/buying/:subCategoryId')
+  @UseGuards(JwtAuthGuard)
+  async suggestForBuying(
+    @Param('subCategoryId', ParseIntPipe) subCategoryId: number,
+    @Req() req,
+  ) {
+    const userId = req.user.id;
+    return this.productService.suggestForBuying(subCategoryId, userId);
   }
 
   // 🟢 Lấy sản phẩm liên quan (ĐẶT TRƯỚC HÀM /:id)
@@ -215,9 +221,31 @@ async searchProducts(@Query() query: SearchProductDto) {
     return this.productService.approveExtension(id);
   }
 
+  // === LẤY DANH SÁCH HẾT HẠN GỢI Ý 30 NGÀY ===
+  @Get('interests/expiring')
+  @UseGuards(JwtAuthGuard)
+  async getExpiringInterests(@Req() req) {
+    const userId = req.user.id;
+    return this.productService.getExpiringInterests(userId);
+  }
+
+  // === GIA HẠN / HỦY NHẬN GỢI Ý ===
+  @Patch(':id/renew-interest')
+  @UseGuards(JwtAuthGuard)
+  async renewInterest(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req,
+    @Body('keepSuggesting') keepSuggesting: boolean,
+  ) {
+    const userId = req.user.id;
+    return this.productService.renewInterest(id, userId, keepSuggesting);
+  }
+
   // 🟢 Lấy chi tiết 1 bài
   @Get(':id')
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.productService.findById(id);
+  @UseGuards(OptionalJwtAuthGuard)
+  async findOne(@Param('id', ParseIntPipe) id: number, @Req() req) {
+    const userId = req.user?.id || null;
+    return this.productService.findById(id, userId);
   }    
 }

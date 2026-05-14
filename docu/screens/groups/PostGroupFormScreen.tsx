@@ -354,7 +354,7 @@ const PostGroupFormScreen = ({ navigation, route }: PostGroupFormProps) => {
     // BỌC NGOÀI CÙNG
     <View className="flex-1 bg-slate-50">
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-1 bg-[#8c7ae6] shadow-md mt-5">
+      <View className="flex-row items-center justify-between px-4 py-1 bg-[#3366FF] shadow-md mt-5">
         <TouchableOpacity onPress={() => navigation.goBack()} className="p-2">
           <MaterialCommunityIcons name="close" size={24} color="white" />
         </TouchableOpacity>
@@ -401,7 +401,7 @@ const PostGroupFormScreen = ({ navigation, route }: PostGroupFormProps) => {
                     }`
                   : "Chọn danh mục"}
               </Text>
-              <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+              <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
             </View>
           </TouchableOpacity>
         </View>
@@ -481,7 +481,7 @@ const PostGroupFormScreen = ({ navigation, route }: PostGroupFormProps) => {
                   ? conditions.find((i) => i.id === conditionId)?.name
                   : "Chọn tình trạng"}
               </Text>
-              <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+              <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
             </View>
           </TouchableOpacity>
         </View>
@@ -503,7 +503,7 @@ const PostGroupFormScreen = ({ navigation, route }: PostGroupFormProps) => {
                         ?.name
                     : "Chọn loại sản phẩm"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
           </View>
@@ -558,7 +558,7 @@ const PostGroupFormScreen = ({ navigation, route }: PostGroupFormProps) => {
                   ? dealTypes.find((i) => i.id === dealTypeId)?.name
                   : "Chọn hình thức"}
               </Text>
-              <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+              <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
             </View>
           </TouchableOpacity>
           {dealTypeId === 1 && (
@@ -639,7 +639,7 @@ const PostGroupFormScreen = ({ navigation, route }: PostGroupFormProps) => {
                 key={type.id}
                 className={`flex-1 flex-row items-center justify-between py-3 px-4 rounded-lg border ${
                   Number(postTypeId) === Number(type.id)
-                    ? "border-[#8c7ae6] bg-blue-50"
+                    ? "border-[#3366FF] bg-blue-50"
                     : "border-slate-200 bg-white"
                 }`}
                 onPress={() => handleSelectPostType(Number(type.id))}
@@ -647,7 +647,7 @@ const PostGroupFormScreen = ({ navigation, route }: PostGroupFormProps) => {
                 <Text
                   className={`text-[15px] font-medium ${
                     Number(postTypeId) === Number(type.id)
-                      ? "text-[#8c7ae6]"
+                      ? "text-[#3366FF]"
                       : "text-slate-700"
                   }`}
                 >
@@ -657,7 +657,7 @@ const PostGroupFormScreen = ({ navigation, route }: PostGroupFormProps) => {
                   <MaterialCommunityIcons
                     name="check-circle"
                     size={20}
-                    color="#8c7ae6"
+                    color="#3366FF"
                   />
                 )}
               </TouchableOpacity>
@@ -707,7 +707,7 @@ const PostGroupFormScreen = ({ navigation, route }: PostGroupFormProps) => {
                 key={type.id}
                 className={`py-4 px-4 border-b border-slate-100 ${
                   conditionId === type.id &&
-                  "bg-blue-50 border-l-4 border-[#8c7ae6]"
+                  "bg-blue-50 border-l-4 border-[#3366FF]"
                 }`}
                 onPress={() => handleSelectCondition(type.id)}
               >
@@ -736,7 +736,7 @@ const PostGroupFormScreen = ({ navigation, route }: PostGroupFormProps) => {
                 key={type.id}
                 className={`py-4 px-4 border-b border-slate-100 ${
                   selectedProductTypeId === type.id &&
-                  "bg-blue-50 border-l-4 border-[#8c7ae6]"
+                  "bg-blue-50 border-l-4 border-[#3366FF]"
                 }`}
                 onPress={() => handleSelectProductType(type.id)}
               >
@@ -765,7 +765,7 @@ const PostGroupFormScreen = ({ navigation, route }: PostGroupFormProps) => {
                 key={option.id}
                 className={`py-4 px-4 border-b border-slate-100 ${
                   dealTypeId === option.id &&
-                  "bg-blue-50 border-l-4 border-[#8c7ae6]"
+                  "bg-blue-50 border-l-4 border-[#3366FF]"
                 }`}
                 onPress={() => handleSelectDealType(Number(option.id))}
               >

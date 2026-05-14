@@ -53,15 +53,23 @@ export default function GroupDetailScreen({
       const token = await AsyncStorage.getItem("token");
       if (!token) return;
 
-      const [detailRes, productsRes] = await Promise.all([
-        axios.get(`${path}/groups/${groupId}/detail`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        axios.get(`${path}/groups/${groupId}/products`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-      ]);
+      const detailRes = await axios.get(`${path}/groups/${groupId}/detail`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const detail = detailRes.data;
+
+      let productsData = [];
+      try {
+        const productsRes = await axios.get(`${path}/groups/${groupId}/products`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        productsData = productsRes.data;
+      } catch (err: any) {
+        // Nếu server báo 403 (chưa là thành viên), thì không load bài viết
+        if (err.response?.status !== 403) {
+          console.log("Lỗi khi lấy danh sách bài viết nhóm:", err.response?.data || err.message);
+        }
+      }
 
       const apiJoinStatus: "none" | "pending" | "joined" = detail.isMember
         ? "joined"
@@ -81,7 +89,7 @@ export default function GroupDetailScreen({
       }
 
       setGroupDetail(detailRes.data);
-      setProducts(productsRes.data);
+      setProducts(productsData);
       setIsApprovalEnabled(detailRes.data.mustApprovePosts || false);
     } catch (err: any) {
       console.log("Lỗi khi tải dữ liệu nhóm:", err);

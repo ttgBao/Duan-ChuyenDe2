@@ -42,6 +42,7 @@ import { AuthModule } from 'src/auth/auth.module';
 import { Favorite } from 'src/entities/favorite.entity';
 import { ScheduleModule } from '@nestjs/schedule';
 import { UsersModule } from 'src/users/users.module';
+import { AiModule } from 'src/ai/ai.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -86,6 +87,7 @@ import { UsersModule } from 'src/users/users.module';
     ProductTypeModule,
     ProductStatusModule,
     AuthModule,
+    AiModule,
   ],
   providers: [ProductService],
   controllers: [ProductController],

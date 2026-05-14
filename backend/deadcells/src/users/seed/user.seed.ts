@@ -7,40 +7,51 @@ import * as bcrypt from 'bcrypt';
 export class UserSeedService implements OnModuleInit {
   constructor(private readonly dataSource: DataSource) {}
 
-  async onModuleInit() {
-    const userRepo = this.dataSource.getRepository(User);
+ async onModuleInit() {
+  const userRepo = this.dataSource.getRepository(User);
+  const statusRepo = this.dataSource.getRepository('Status');
+  const roleRepo = this.dataSource.getRepository('Role');
 
-    // Kiểm tra nếu user có id = 1 đã tồn tại chưa
-    const existingUser = await userRepo.findOne({ where: { id: 1 } });
-    if (existingUser) {
-      console.log(' User id=1 đã tồn tại, bỏ qua seed user.');
-      return;
-    }
+  // Status
+  if (!(await statusRepo.findOne({ where: { id: 1 } }))) {
+    await statusRepo.save({ id: 1, name: 'active', description: 'Hoạt động' });
+  }
 
-    const passwordHash = await bcrypt.hash('Admin@123', 10);
+  // Role
+  if (!(await roleRepo.findOne({ where: { id: 1 } }))) {
+    await roleRepo.save({ id: 1, name: 'admin', description: 'Quản trị hệ thống' });
+  }
 
-    const newUser = userRepo.create({
-      id: 1,
+  if (!(await roleRepo.findOne({ where: { id: 2 } }))) {
+    await roleRepo.save({ id: 2, name: 'user', description: 'Người dùng thông thường' });
+  }
+
+  const passwordHash = await bcrypt.hash('Admin@123', 10);
+
+  // Admin
+  if (!(await userRepo.findOne({ where: { email: 'admin@fit.tdc.edu.vn' } }))) {
+    await userRepo.save({
       roleId: 1,
       statusId: 1,
       fullName: 'Admin',
       email: 'admin@fit.tdc.edu.vn',
-      passwordHash: passwordHash,
+      passwordHash,
       is_verified: true,
     });
+    console.log('Seed Admin OK');
+  }
 
-    const newUser2 = userRepo.create({
-      id: 2,
+  // User test
+  if (!(await userRepo.findOne({ where: { email: 'user@fit.tdc.edu.vn' } }))) {
+    await userRepo.save({
       roleId: 2,
       statusId: 1,
       fullName: 'User test',
       email: 'user@fit.tdc.edu.vn',
-      passwordHash: passwordHash,
+      passwordHash,
       is_verified: true,
     });
-
-    await userRepo.save(newUser);
-
-    console.log('Seed User Admin thành công.');
+    console.log('Seed User test OK');
   }
+}
 }

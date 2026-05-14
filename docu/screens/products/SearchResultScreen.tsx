@@ -148,7 +148,7 @@ export default function SearchResultScreen({ route }: Props) {
 
       // Chuẩn bị params
       const queryParams: any = {
-        name: query.trim(),
+        name: (query || "").trim(),
         page: pageNum.toString(),
         limit: "20",
         sortBy: filters.sortBy,

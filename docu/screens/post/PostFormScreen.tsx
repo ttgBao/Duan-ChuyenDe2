@@ -9,11 +9,14 @@ import {
   Image,
   Dimensions,
   ActivityIndicator,
+  Modal,
+  SafeAreaView,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import * as ImagePicker from "expo-image-picker";
 import AddressPicker from "../../components/AddressPicker";
+import SuggestionBottomSheet from "../../components/SuggestionBottomSheet";
 import axios from "axios";
 import { Alert } from "react-native";
 import { path } from "../../config";
@@ -47,6 +50,56 @@ const PostFormScreen = ({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [user, setUser] = useState<{ id: number; name: string } | null>(null);
+
+  interface PendingImage {
+    uri: string;
+    status: "analyzing" | "Tốt" | "Khá/Mờ" | "Tệ" | "error" | null;
+    message: string;
+  }
+  const [pendingImages, setPendingImages] = useState<PendingImage[]>([]);
+  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
+
+  const analyzeSingleImage = async (uri: string, index: number) => {
+    try {
+      const manipResult = await ImageManipulator.manipulateAsync(
+        uri,
+        [],
+        { format: ImageManipulator.SaveFormat.JPEG, base64: true, compress: 0.5 }
+      );
+      
+      const catName = category?.name || "Không xác định";
+
+      const response = await axios.post(`${path}/ai/analyze-image-quality`, {
+        imageBase64: manipResult.base64,
+        category: catName
+      });
+      
+      if (response.data?.success) {
+        setPendingImages((prev) => {
+          const newArr = [...prev];
+          newArr[index] = {
+            ...newArr[index],
+            status: response.data.data.state,
+            message: response.data.data.message
+          };
+          return newArr;
+        });
+      } else {
+        setPendingImages((prev) => {
+          const newArr = [...prev];
+          newArr[index] = { ...newArr[index], status: "error", message: "Lỗi phân tích." };
+          return newArr;
+        });
+      }
+    } catch (e) {
+      console.error("Lỗi AI phân tích:", e);
+      setPendingImages((prev) => {
+        const newArr = [...prev];
+        newArr[index] = { ...newArr[index], status: "error", message: "Đã xảy ra lỗi hệ thống." };
+        return newArr;
+      });
+    }
+  };
 
   // 1. Lấy thông tin User từ bộ nhớ máy (AsyncStorage)
   useEffect(() => {
@@ -510,7 +563,7 @@ const PostFormScreen = ({
       result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: true,
-        selectionLimit: 4,
+        selectionLimit: 4 - images.length,
         quality: 1,
       });
     }
@@ -522,16 +575,27 @@ const PostFormScreen = ({
         return;
       }
 
-      const selected: string[] = []; // Bật loading hoặc spinner ở đây nếu bạn muốn
       console.log("Bắt đầu xử lý nén ảnh...");
+      const newPendingImages: PendingImage[] = [];
 
       for (const asset of result.assets) {
         // LUÔN LUÔN xử lý ảnh (nén + resize)
         const processedUri = await processImageForUpload(asset.uri);
-        selected.push(processedUri);
+        newPendingImages.push({
+          uri: processedUri,
+          status: "analyzing",
+          message: "Đang phân tích...",
+        });
       }
-      console.log("Đã xử lý ảnh xong."); // Tắt loading
-      setImages((prev) => [...prev, ...selected]);
+      console.log("Đã xử lý ảnh xong, bắt đầu AI..."); 
+      
+      setPendingImages(newPendingImages);
+      setShowAnalysisModal(true);
+
+      // Call API for each image
+      newPendingImages.forEach((img, idx) => {
+        analyzeSingleImage(img.uri, idx);
+      });
     }
   };
 
@@ -706,13 +770,42 @@ const PostFormScreen = ({
 
       const response = await axios.post(`${path}/products`, formData, {
         headers: {
+          "Accept": "application/json",
           "Content-Type": "multipart/form-data",
         },
       });
 
       if (response.status === 201 || response.status === 200) {
-        Alert.alert("Thành công", "Đăng tin thành công. Đang chờ duyệt");
-        navigation.navigate("Home");
+        Alert.alert("Thành công", "Đăng tin thành công. Đang chờ duyệt", [
+          {
+            text: "OK",
+            onPress: async () => {
+              try {
+                const suggestType = postTypeId === 1 ? "selling" : "buying";
+                if (subCategory?.id) {
+                  const token = await AsyncStorage.getItem("token");
+                  const suggestRes = await axios.get(`${path}/products/suggest/${suggestType}/${subCategory.id}`, {
+                    headers: token ? { Authorization: `Bearer ${token}` } : {}
+                  });
+                  
+                  setIsLoading(false);
+                  if (suggestRes.data && suggestRes.data.length > 0) {
+                    navigation.navigate("Home", {
+                      showSuggestions: true,
+                      suggestions: suggestRes.data,
+                      suggestTitle: postTypeId === 1 ? "Người mua bạn có thể quan tâm" : "Người bán bạn có thể quan tâm"
+                    });
+                    return;
+                  }
+                }
+              } catch(e) {
+                console.error("Lỗi lấy gợi ý:", e);
+              }
+              setIsLoading(false);
+              navigation.navigate("Home");
+            }
+          }
+        ]);
       } else {
         Alert.alert("Lỗi", "Không thể đăng tin. Vui lòng thử lại.");
       }
@@ -738,6 +831,89 @@ const PostFormScreen = ({
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const [isAiWriting, setIsAiWriting] = useState(false);
+  const [isAiPricing, setIsAiPricing] = useState(false);
+
+  const handleAiWriteDescription = async () => {
+    if (images.length === 0) {
+      Alert.alert("Lỗi", "Vui lòng upload ít nhất 1 hình ảnh trước.");
+      return;
+    }
+    if (!category) {
+      Alert.alert("Lỗi", "Vui lòng chọn danh mục trước.");
+      return;
+    }
+
+    setIsAiWriting(true);
+    try {
+      const manipResult = await ImageManipulator.manipulateAsync(
+        images[0],
+        [],
+        { format: ImageManipulator.SaveFormat.JPEG, base64: true, compress: 0.5 }
+      );
+      
+      const response = await axios.post(`${path}/ai/generate-description`, {
+        imageBase64: manipResult.base64,
+        category: category.name
+      });
+      
+      if (response.data?.success) {
+        setDescription(response.data.data.description);
+      } else {
+        Alert.alert("Lỗi", "AI không thể viết mô tả.");
+      }
+    } catch (e) {
+      console.error(e);
+      Alert.alert("Lỗi", "Đã xảy ra lỗi khi gọi AI.");
+    } finally {
+      setIsAiWriting(false);
+    }
+  };
+
+  const handleAiSuggestPrice = async () => {
+    if (images.length === 0) {
+      Alert.alert("Lỗi", "Vui lòng upload ít nhất 1 hình ảnh trước.");
+      return;
+    }
+    if (!category) {
+      Alert.alert("Lỗi", "Vui lòng chọn danh mục trước.");
+      return;
+    }
+    if (category.name !== "Thú cưng" && !conditionId) {
+      Alert.alert("Lỗi", "Vui lòng chọn tình trạng sản phẩm trước.");
+      return;
+    }
+
+    setIsAiPricing(true);
+    try {
+      const manipResult = await ImageManipulator.manipulateAsync(
+        images[0],
+        [],
+        { format: ImageManipulator.SaveFormat.JPEG, base64: true, compress: 0.5 }
+      );
+      
+      const conditionName = conditionId ? conditions.find(c => c.id === conditionId)?.name : "Không xác định";
+
+      const response = await axios.post(`${path}/ai/suggest-price`, {
+        imageBase64: manipResult.base64,
+        category: category.name,
+        condition: conditionName,
+        description: description || "Không có"
+      });
+      
+      if (response.data?.success) {
+        setPrice(String(response.data.data.price));
+      } else {
+        Alert.alert("Lỗi", "AI không thể định giá.");
+      }
+    } catch (e) {
+      console.error(e);
+      Alert.alert("Lỗi", "Đã xảy ra lỗi khi gọi AI.");
+    } finally {
+      setIsAiPricing(false);
     }
   };
 
@@ -1535,7 +1711,7 @@ const PostFormScreen = ({
                   : "Chọn danh mục"}
               </Text>
 
-              <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+              <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
             </View>
           </TouchableOpacity>
         </View>
@@ -1606,7 +1782,7 @@ const PostFormScreen = ({
         </View>
         {isLoadingOptions && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải tùy chọn...</Text>
           </View>
         )}
@@ -1626,7 +1802,7 @@ const PostFormScreen = ({
                         ?.name || "Không xác định"
                     : "Chọn tình trạng"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>
@@ -1638,7 +1814,7 @@ const PostFormScreen = ({
         {/* Loading Giống */}
         {isLoadingBreeds && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải danh sách giống...</Text>
           </View>
         )}
@@ -1661,7 +1837,7 @@ const PostFormScreen = ({
                       "Không xác định")
                     : "Chọn giống"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn giống của thú cưng</Text>
@@ -1671,7 +1847,7 @@ const PostFormScreen = ({
         {/* Loading Độ tuổi */}
         {isLoadingAgeRanges && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải độ tuổi...</Text>
           </View>
         )}
@@ -1694,7 +1870,7 @@ const PostFormScreen = ({
                         ?.name ?? "Không xác định")
                     : "Chọn độ tuổi"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn độ tuổi của thú cưng</Text>
@@ -1704,7 +1880,7 @@ const PostFormScreen = ({
         {/* Loading Giới tính */}
         {isLoadingGenders && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải giới tính...</Text>
           </View>
         )}
@@ -1727,7 +1903,7 @@ const PostFormScreen = ({
                       "Không xác định")
                     : "Chọn giới tính"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn giới tính của thú cưng</Text>
@@ -1737,7 +1913,7 @@ const PostFormScreen = ({
         {/* Loading Loại sản phẩm */}
         {isLoadingProductTypes && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải loại sản phẩm...</Text>
           </View>
         )}
@@ -1759,7 +1935,7 @@ const PostFormScreen = ({
                       : "Chọn loại sản phẩm"}
                   </Text>
                 </ScrollView>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn loại sản phẩm của bạn</Text>
@@ -1769,7 +1945,7 @@ const PostFormScreen = ({
         {/* Loading Hãng */}
         {isLoadingBrands && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải danh sách hãng...</Text>
           </View>
         )}
@@ -1792,7 +1968,7 @@ const PostFormScreen = ({
                       "Không xác định")
                     : "Chọn hãng"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn hãng sản xuất</Text>
@@ -1802,7 +1978,7 @@ const PostFormScreen = ({
         {/* Loading Dòng */}
         {isLoadingModels && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải dòng...</Text>
           </View>
         )}
@@ -1826,7 +2002,7 @@ const PostFormScreen = ({
                       )?.name ?? "Không xác định")
                     : "Chọn dòng"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn dòng (model)</Text>
@@ -1835,7 +2011,7 @@ const PostFormScreen = ({
         {/* Loading Dung tích xe */}
         {isLoadingEngineCapacities && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải dung tích xe...</Text>
           </View>
         )}
@@ -1859,7 +2035,7 @@ const PostFormScreen = ({
                       )?.name ?? "Không xác định")
                     : "Chọn dung tích xe (cc)"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn dung tích (cc) của xe</Text>
@@ -1888,7 +2064,7 @@ const PostFormScreen = ({
         {/* Loading Bộ vi xử lý */}
         {isLoadingProcessors && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải bộ vi xử lý...</Text>
           </View>
         )}
@@ -1911,7 +2087,7 @@ const PostFormScreen = ({
                         ?.name ?? "Không xác định")
                     : "Chọn bộ vi xử lý"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn bộ vi xử lý (CPU)</Text>
@@ -1921,7 +2097,7 @@ const PostFormScreen = ({
         {/* Loading RAM */}
         {isLoadingRamOptions && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải tùy chọn RAM...</Text>
           </View>
         )}
@@ -1944,7 +2120,7 @@ const PostFormScreen = ({
                         ?.name ?? "Không xác định")
                     : "Chọn dung lượng RAM"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn dung lượng RAM</Text>
@@ -1954,7 +2130,7 @@ const PostFormScreen = ({
         {/* Loading Loại ổ cứng */}
         {isLoadingStorageTypes && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải loại ổ cứng...</Text>
           </View>
         )}
@@ -1977,7 +2153,7 @@ const PostFormScreen = ({
                         ?.name ?? "Không xác định")
                     : "Chọn loại ổ cứng"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn loại ổ cứng (SSD, HDD)</Text>
@@ -1987,7 +2163,7 @@ const PostFormScreen = ({
         {/* Loading Card màn hình */}
         {isLoadingGraphicsCards && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải card màn hình...</Text>
           </View>
         )}
@@ -2011,7 +2187,7 @@ const PostFormScreen = ({
                       )?.name ?? "Không xác định")
                     : "Chọn card màn hình"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn card màn hình (GPU)</Text>
@@ -2023,7 +2199,7 @@ const PostFormScreen = ({
         {/* Loading Màu sắc */}
         {isLoadingColors && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải màu sắc...</Text>
           </View>
         )}
@@ -2046,7 +2222,7 @@ const PostFormScreen = ({
                       "Không xác định")
                     : "Chọn màu sắc"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn màu sắc sản phẩm</Text>
@@ -2056,7 +2232,7 @@ const PostFormScreen = ({
         {/* Loading Dung lượng */}
         {isLoadingCapacities && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải dung lượng...</Text>
           </View>
         )}
@@ -2079,7 +2255,7 @@ const PostFormScreen = ({
                         ?.name ?? "Không xác định")
                     : "Chọn dung lượng"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn dung lượng (ROM)</Text>
@@ -2089,7 +2265,7 @@ const PostFormScreen = ({
         {/* Loading Bảo hành */}
         {isLoadingWarranties && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải bảo hành...</Text>
           </View>
         )}
@@ -2112,7 +2288,7 @@ const PostFormScreen = ({
                         ?.name ?? "Không xác định")
                     : "Chọn tình trạng bảo hành"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn tình trạng bảo hành</Text>
@@ -2122,7 +2298,7 @@ const PostFormScreen = ({
         {/* Loading Kích cỡ */}
         {isLoadingSizes && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải kích cỡ...</Text>
           </View>
         )}
@@ -2145,7 +2321,7 @@ const PostFormScreen = ({
                       "Không xác định")
                     : "Chọn kích cỡ"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn kích cỡ</Text>
@@ -2155,7 +2331,7 @@ const PostFormScreen = ({
         {/* Loading Chất liệu */}
         {isLoadingMaterials && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải chất liệu...</Text>
           </View>
         )}
@@ -2178,7 +2354,7 @@ const PostFormScreen = ({
                         ?.name ?? "Không xác định")
                     : "Chọn chất liệu"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn chất liệu của sản phẩm</Text>
@@ -2188,7 +2364,7 @@ const PostFormScreen = ({
         {/* Loading Xuất xứ */}
         {isLoadingOrigins && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
             <Text style={styles.loadingText}>Đang tải xuất xứ...</Text>
           </View>
         )}
@@ -2211,7 +2387,7 @@ const PostFormScreen = ({
                       "Không xác định")
                     : "Chọn xuất xứ"}
                 </Text>
-                <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+                <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
               </View>
             </TouchableOpacity>
             <Text style={styles.helperText}>Chọn xuất xứ của sản phẩm</Text>
@@ -2265,16 +2441,26 @@ const PostFormScreen = ({
                   : "Chọn hình thức"}
               </Text>
 
-              <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+              <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
             </View>
           </TouchableOpacity>
 
           {/* Giá bán - Chỉ hiển thị nếu chọn "Giá bán" */}
           {dealTypeId === 1 && (
             <View style={{ marginTop: 8 }}>
-              <Text style={[styles.dropdownLabel, { marginBottom: 4 }]}>
-                Giá bán (VNĐ)
-              </Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <Text style={styles.dropdownLabel}>Giá bán (VNĐ)</Text>
+                <TouchableOpacity onPress={handleAiSuggestPrice} disabled={isAiPricing || isAiWriting} style={[styles.aiSmallBtn, (isAiPricing || isAiWriting) && { opacity: 0.5 }]}>
+                  {isAiPricing ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <>
+                      <MaterialCommunityIcons name="robot-excited-outline" size={16} color="#fff" />
+                      <Text style={styles.aiSmallBtnText}>AI Định giá</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
               <TextInput
                 style={styles.input}
                 placeholder="Nhập giá bán mong muốn"
@@ -2322,7 +2508,19 @@ const PostFormScreen = ({
 
         {/* Mô tả sản phẩm */}
         <View style={styles.section}>
-          <Text style={styles.dropdownLabel}>Mô tả sản phẩm</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+            <Text style={styles.dropdownLabel}>Mô tả sản phẩm</Text>
+            <TouchableOpacity onPress={handleAiWriteDescription} disabled={isAiPricing || isAiWriting} style={[styles.aiSmallBtn, (isAiPricing || isAiWriting) && { opacity: 0.5 }]}>
+              {isAiWriting ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <MaterialCommunityIcons name="robot-excited-outline" size={16} color="#fff" />
+                  <Text style={styles.aiSmallBtnText}>AI Viết hộ</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
           <TextInput
             style={[styles.input, styles.textArea]}
             placeholder="Mô tả chi tiết sản phẩm *"
@@ -2361,7 +2559,7 @@ const PostFormScreen = ({
                     "Không xác định"
                   : "Toàn trường"}
               </Text>
-              <FontAwesome6 name="chevron-down" size={20} color="#8c7ae6" />
+              <FontAwesome6 name="chevron-down" size={20} color="#3366FF" />
             </View>
           </TouchableOpacity>
           <Text style={styles.helperText}>
@@ -2397,7 +2595,7 @@ const PostFormScreen = ({
                     <MaterialCommunityIcons
                       name="check-circle"
                       size={20}
-                      color="#8c7ae6"
+                      color="#3366FF"
                     />
                   )}
                 </TouchableOpacity>
@@ -3008,7 +3206,7 @@ const PostFormScreen = ({
                   <MaterialCommunityIcons
                     name="check-circle"
                     size={20}
-                    color="#8c7ae6"
+                    color="#3366FF"
                   />
                 )}
               </TouchableOpacity>
@@ -3033,7 +3231,7 @@ const PostFormScreen = ({
                     <MaterialCommunityIcons
                       name="check-circle"
                       size={20}
-                      color="#8c7ae6"
+                      color="#3366FF"
                     />
                   )}
                 </TouchableOpacity>
@@ -3049,6 +3247,72 @@ const PostFormScreen = ({
           </View>
         </View>
       )}
+
+      {/* AI Analysis Modal */}
+      <Modal visible={showAnalysisModal} animationType="slide" transparent={false}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }}>
+          <View style={{ padding: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>Phân tích ảnh bằng AI</Text>
+            <TouchableOpacity onPress={() => setShowAnalysisModal(false)}>
+              <MaterialCommunityIcons name="close" size={28} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+            {pendingImages.map((img, idx) => {
+              const bgBadgeColor = img.status === 'analyzing' ? 'rgba(0,0,0,0.6)' 
+                                  : img.status === 'Tốt' ? '#22c55e' 
+                                  : img.status === 'Khá/Mờ' ? '#f59e0b' 
+                                  : img.status === 'Tệ' ? '#ef4444' 
+                                  : '#6b7280';
+              return (
+                <View key={idx} style={{ marginBottom: 24, backgroundColor: '#1e1e1e', borderRadius: 12, overflow: 'hidden' }}>
+                  <Image source={{ uri: img.uri }} style={{ width: '100%', height: 300, resizeMode: 'contain', backgroundColor: '#000' }} />
+                  
+                  {/* Status Badge Positioned Top Right of Image */}
+                  <View style={{ position: 'absolute', top: 12, right: 12, backgroundColor: bgBadgeColor, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, flexDirection: 'row', alignItems: 'center' }}>
+                    {img.status === 'analyzing' && <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />}
+                    <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 12 }}>
+                      {img.status === 'analyzing' ? 'Đang phân tích...' : img.status === 'error' ? 'Lỗi' : img.status}
+                    </Text>
+                  </View>
+                  
+                  {img.message ? (
+                    <View style={{ padding: 16 }}>
+                      <Text style={{ color: '#fff', fontSize: 14 }}>{img.message}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              );
+            })}
+          </ScrollView>
+          
+          <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: '#1e1e1e', flexDirection: 'row', gap: 12 }}>
+            <TouchableOpacity 
+              style={{ flex: 1, backgroundColor: '#333', paddingVertical: 14, borderRadius: 10, alignItems: 'center' }}
+              onPress={() => {
+                setShowAnalysisModal(false);
+                setPendingImages([]);
+              }}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Hủy / Chọn lại</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={{ flex: 1, backgroundColor: '#3366FF', paddingVertical: 14, borderRadius: 10, alignItems: 'center', opacity: pendingImages.some(img => img.status === 'analyzing') ? 0.6 : 1 }}
+              disabled={pendingImages.some(img => img.status === 'analyzing')}
+              onPress={() => {
+                setImages(prev => [...prev, ...pendingImages.map(img => img.uri)]);
+                setShowAnalysisModal(false);
+                setPendingImages([]);
+              }}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Tiếp tục</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
     </View>
   );
 };
@@ -3081,7 +3345,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 4,
-    backgroundColor: "#8c7ae6",
+    backgroundColor: "#3366FF",
     elevation: 4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
@@ -3118,6 +3382,40 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 3,
+  },
+  aiScanBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#7c3aed",
+    borderRadius: 12,
+    paddingVertical: 13,
+    marginBottom: 12,
+    shadowColor: "#7c3aed",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  aiScanBtnText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  aiSmallBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#3366FF",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 4,
+  },
+  aiSmallBtnText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
   },
   pickerContainer: {
     flexDirection: "row",
@@ -3293,7 +3591,7 @@ const styles = StyleSheet.create({
   modalOptionSelected: {
     backgroundColor: "#f0f9ff",
     borderLeftWidth: 4,
-    borderLeftColor: "#8c7ae6",
+    borderLeftColor: "#3366FF",
   },
   modalOptionText: {
     fontSize: 16,
@@ -3329,7 +3627,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   radioOptionSelected: {
-    borderColor: "#8c7ae6",
+    borderColor: "#3366FF",
     backgroundColor: "#f0f9ff",
   },
   radioOptionText: {
@@ -3338,6 +3636,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   radioOptionTextSelected: {
-    color: "#8c7ae6",
+    color: "#3366FF",
   },
 });

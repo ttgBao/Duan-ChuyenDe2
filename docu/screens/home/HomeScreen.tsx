@@ -20,16 +20,19 @@ import { Category, Product, RootStackParamList } from "../../types";
 import { Feather, FontAwesome5, MaterialIcons } from "@expo/vector-icons";
 import ProductCard from "../../components/ProductCard";
 import SearchProduct from "../products/SearchProduct";
-import { useEffect, useState, useCallback } from "react"; // 2. Thêm useCallback
+import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import "../../global.css";
 import { path } from "../../config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNotification } from "../Notification/NotificationContext";
 import React from "react";
+import InterestRenewalDialog from "../../components/InterestRenewalDialog";
+import SuggestionBottomSheet from "../../components/SuggestionBottomSheet";
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, "Home">;
+  route: any;
 };
 
 const filters = [
@@ -39,7 +42,7 @@ const filters = [
   { id: "4", label: "Trao đổi" },
 ];
 
-export default function HomeScreen({ navigation }: Props) {
+export default function HomeScreen({ navigation, route }: Props) {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<string>("Mới nhất");
@@ -51,6 +54,68 @@ export default function HomeScreen({ navigation }: Props) {
   const { unreadCount, setUnreadCount, fetchUnreadCount } = useNotification();
 
   const [isMenuModalVisible, setMenuModalVisible] = useState(false);
+
+  const [expiringInterests, setExpiringInterests] = useState<any[]>([]);
+  const [currentInterestIndex, setCurrentInterestIndex] = useState(0);
+  const [showRenewalDialog, setShowRenewalDialog] = useState(false);
+
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [suggestTitle, setSuggestTitle] = useState("");
+
+  useEffect(() => {
+    if (route.params?.showSuggestions) {
+      setSuggestions(route.params.suggestions || []);
+      setSuggestTitle(route.params.suggestTitle || "Gợi ý cho bạn");
+      setShowSuggestions(true);
+      
+      // Clear params to avoid showing again on refocus
+      navigation.setParams({ showSuggestions: undefined, suggestions: undefined, suggestTitle: undefined });
+    }
+  }, [route.params]);
+
+  useEffect(() => {
+    const checkExpiringInterests = async () => {
+      try {
+        const token = await AsyncStorage.getItem("token");
+        if (token) {
+          const res = await axios.get(`${path}/products/interests/expiring`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.data && res.data.length > 0) {
+            setExpiringInterests(res.data);
+            setCurrentInterestIndex(0);
+            setShowRenewalDialog(true);
+          }
+        }
+      } catch (err) {
+        console.log("Lỗi check expiring interests:", err);
+      }
+    };
+    checkExpiringInterests();
+  }, []);
+
+  const handleRenewInterest = async (keep: boolean) => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const currentInterest = expiringInterests[currentInterestIndex];
+      if (currentInterest && token) {
+        await axios.patch(`${path}/products/${currentInterest.id}/renew-interest`, {
+          keepSuggesting: keep
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
+    } catch(err) {
+      console.log("Lỗi gia hạn interest:", err);
+    }
+
+    if (currentInterestIndex < expiringInterests.length - 1) {
+      setCurrentInterestIndex(prev => prev + 1);
+    } else {
+      setShowRenewalDialog(false);
+    }
+  };
 
   const fetchCategories = () => {
     return axios
@@ -680,6 +745,26 @@ export default function HomeScreen({ navigation }: Props) {
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
+
+      {expiringInterests.length > 0 && (
+        <InterestRenewalDialog
+          visible={showRenewalDialog}
+          productName={expiringInterests[currentInterestIndex]?.name || "Sản phẩm"}
+          onRenew={() => handleRenewInterest(true)}
+          onCancel={() => handleRenewInterest(false)}
+        />
+      )}
+
+      <SuggestionBottomSheet
+        visible={showSuggestions}
+        suggestions={suggestions}
+        onClose={() => setShowSuggestions(false)}
+        onItemPress={(item) => {
+          setShowSuggestions(false);
+          navigation.navigate("ProductDetail", { product: item });
+        }}
+        title={suggestTitle}
+      />
     </View>
   );
 }

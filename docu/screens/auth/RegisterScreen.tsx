@@ -1,9 +1,9 @@
 import '../../global.css';
-import { Text, View, ScrollView, Alert } from 'react-native';
+import { Text, View, ScrollView, Alert, Image } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { FontAwesome } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import Button from '../../components/Button';
-import Header_lg_reg from '../../components/HeaderAuth';
 import { useEffect, useState } from 'react';
 import FloatingInput from '../../components/FloatingInput';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -27,7 +27,9 @@ export default function RegisterScreen({ navigation }: Props) {
   useEffect(() => {
     axios
       .get(`${path}/groups/public`)
-      .then((res) => setGroups(res.data))
+      .then((res) => {
+        setGroups(res.data);
+      })
       .catch((err) => console.error(err));
   }, []);
 
@@ -73,6 +75,10 @@ export default function RegisterScreen({ navigation }: Props) {
       Alert.alert("Vui lòng điền đầy đủ thông tin");
       return;
     }
+    if (!selectedGroup) {
+      Alert.alert("Vui lòng chọn khoa");
+      return;
+    }
     if (!email.endsWith("@fit.tdc.edu.vn")) {
       Alert.alert(
         "Email không hợp lệ",
@@ -115,29 +121,40 @@ export default function RegisterScreen({ navigation }: Props) {
   };
 
   return (
-    <ScrollView className="flex-1">
-      <View className="pl-5 pt-14">
-        <FontAwesome
-          onPress={() => navigation.goBack()}
-          name="arrow-left"
-          size={20}
-          color="#000"
-        />
-      </View>
-
-      <StatusBar style="auto" />
-      <Header_lg_reg value="Đăng ký" />
-
-      {loginError && (
-        <View className="flex items-center px-2">
-          <View className="flex-row gap-2 bg-red-100 py-4 justify-center w-full rounded-xl px-3">
-            <FontAwesome name="warning" size={16} color="red" />
-            <Text>{loginError}</Text>
+    <LinearGradient 
+      colors={['#3366FF', '#2952CC', '#1F5499']} 
+      locations={[0, 0.5, 1]}
+      className="flex-1"
+    >
+      <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
+        <StatusBar style="light" />
+        <View className="flex-row items-center justify-between px-5 pt-14 pb-8">
+          <View className="flex-row items-center gap-4">
+            <FontAwesome
+              onPress={() => navigation.goBack()}
+              name="arrow-left"
+              size={20}
+              color="#fff"
+            />
+            <Text className="text-3xl font-bold text-white">Đăng ký</Text>
           </View>
+          <Image 
+            className="w-[46px] h-[46px] rounded-full bg-white"
+            source={require('../../assets/TDC.jpg')}
+          />
         </View>
-      )}
 
-      <View className="mt-10 px-2">
+        <View className="flex-1 bg-white rounded-t-[40px] px-5 pt-8 pb-5">
+          {loginError && (
+            <View className="flex items-center px-2 mb-4">
+              <View className="flex-row gap-2 bg-red-100 py-4 justify-center w-full rounded-xl px-3">
+                <FontAwesome name="warning" size={16} color="red" />
+                <Text>{loginError}</Text>
+              </View>
+            </View>
+          )}
+
+          <View className="mt-2 px-2">
         {content.map((label, index) => {
           const isPassword = index === 3 || index === 4;
           const pwToggleIdx = index - 3; // 3 -> 0, 4 -> 1
@@ -165,17 +182,19 @@ export default function RegisterScreen({ navigation }: Props) {
               }
               autoCapitalize={label === "Email" ? "none" : "sentences"}
               autoCorrect={label === "Email" || isPassword ? false : true}
+              inputClassName="bg-[#D9D9D9]/30 border-gray-300"
             />
           );
         })}
         {/*dropdow chon khoa */}
         <View className="mt-4">
           <Text className="mb-1 font-semibold">Khoa</Text>
-          <View className="border border-gray-300 rounded-lg overflow-hidden">
+          <View className="border border-gray-300 rounded-lg overflow-hidden bg-[#D9D9D9]/30">
             <Picker
               selectedValue={selectedGroup}
               onValueChange={(value) => setSelectedGroup(value)}
             >
+              <Picker.Item label="-- Vui lòng chọn khoa --" value="" />
               {groups.map((group) => (
                 <Picker.Item
                   key={group.id}
@@ -187,14 +206,21 @@ export default function RegisterScreen({ navigation }: Props) {
           </View>
         </View>
 
-        {binding.map((b, index) => (
-          <View key={index} className="flex flex-row gap-2 mt-4">
-            <FontAwesome name="check-circle" size={20} color="gray" />
-            <Text>{b}</Text>
-          </View>
-        ))}
+        <View className="bg-[#DCE1FF]/30 p-4 rounded-xl mt-4 flex gap-2">
+          {binding.map((b, index) => (
+            <View key={index} className="flex flex-row items-center gap-2">
+              <FontAwesome name="check-circle" size={16} color="#3366FF" />
+              <Text className="text-gray-500 text-xs">{b}</Text>
+            </View>
+          ))}
+        </View>
 
-        <Button value="Đăng ký" onPress={handleRegister} loading={isLoading} />
+        <Button 
+          value="Đăng ký" 
+          onPress={handleRegister} 
+          loading={isLoading} 
+          containerClassName="bg-[#3366FF]" 
+        />
 
         <View className="flex flex-row gap-2 justify-center mt-5 items-center ">
           <View className="relative w-full h-[1px] bg-gray-300">
@@ -214,11 +240,13 @@ export default function RegisterScreen({ navigation }: Props) {
       </View>
 
       <View className="w-full h-[1px] bg-gray-300 mt-10" />
-      <View className="flex flex-row gap-6 justify-center mt-5">
+      <View className="flex flex-row gap-6 justify-center mt-5 mb-10">
         <Text className="text-[12px] border-r pr-5 ">Cao Đẳng CN Thủ Đức</Text>
         <Text className="text-[12px] border-r pr-5">Chính sách bảo mật</Text>
         <Text className="text-[12px]">Liên hệ hỗ trợ</Text>
       </View>
-    </ScrollView>
+        </View>
+      </ScrollView>
+    </LinearGradient>
   );
 }

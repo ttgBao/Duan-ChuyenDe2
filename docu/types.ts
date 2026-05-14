@@ -2,7 +2,11 @@ import { RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 export type RootStackParamList = {
-  Home: undefined;
+  Home: {
+    showSuggestions?: boolean;
+    suggestions?: any[];
+    suggestTitle?: string;
+  } | undefined;
   CategoryIndex: { categoryId: string; categoryName?: string } | undefined;
   LoginScreen: undefined;
   RegisterScreen: undefined;
@@ -64,7 +68,9 @@ export type RootStackParamList = {
   AdminDashboardScreen: undefined;
   SearchProduct: undefined;
   SearchResultScreen: {
-    query: string;
+    query?: string;
+    imageUri?: string;
+    isAiSearch?: boolean;
   };
   ManageProductsUserScreen: undefined;
   ManageCategoriesScreen: undefined;  

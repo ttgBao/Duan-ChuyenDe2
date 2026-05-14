@@ -1,6 +1,7 @@
 import { GroupService } from './../groups/group.service';
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -49,6 +50,7 @@ import { Product } from 'src/entities/product.entity';
 import { Favorite } from 'src/entities/favorite.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { SearchProductDto } from './dto/search-product.dto';
+import { AiService } from 'src/ai/ai.service';
 
 @Injectable()
 export class ProductService {
@@ -119,6 +121,7 @@ export class ProductService {
     private readonly groupMemberRepo: Repository<GroupMember>,
 
     private readonly notificationService: NotificationService,
+    private readonly aiService: AiService,
   ) { }
 
   // Thêm sản phẩm mới (tự động tạo sub_category nếu chưa tồn tại)
@@ -876,7 +879,7 @@ export class ProductService {
         return null;
     }
   }
-  async findById(id: number): Promise<any> {
+  async findById(id: number, userId?: number): Promise<any> {
     const product = await this.productRepo.findOne({
       where: { id },
       relations: [
@@ -913,6 +916,17 @@ export class ProductService {
     });
 
     if (!product) return null;
+
+    // Kiểm tra quyền xem nếu là bài đăng của nhóm
+    if (Number(product.visibility_type) === 1 && product.group_id) {
+      if (!userId) {
+        throw new ForbiddenException('Bạn phải đăng nhập để xem bài viết của nhóm này');
+      }
+      const isMember = await this.groupService.isMember(product.group_id, userId);
+      if (!isMember) {
+        throw new ForbiddenException('Bạn không phải là thành viên của nhóm này nên không thể xem bài viết');
+      }
+    }
 
     return await this.formatProduct(product);
   }
@@ -2043,99 +2057,7 @@ export class ProductService {
     return this.formatProducts(filtered, userId);
   }
 
-  // --- Gợi ý khi người dùng đăng bán (so sánh subCategory, tìm người muốn mua) ---
-  async suggestForSelling(
-    subCategoryId: number,
-    currentUserId: number,
-  ): Promise<Product[]> {
-    const products = await this.productRepo.find({
-      where: {
-        subCategory: { id: subCategoryId },
-        postType: { id: 2 }, // 2 = đăng mua
-        user: { id: Not(currentUserId) },
-        productStatus: { id: 2 }, // Đã duyệt
-      },
-      relations: [
-        'images',
-        'user',
-        'dealType',
-        'condition',
-        'category',
-        'subCategory',
-        'category_change',
-        'sub_category_change',
-        'postType',
-        'productType',
-        'origin',
-        'material',
-        'size',
-        'brand',
-        'color',
-        'capacity',
-        'warranty',
-        'productModel',
-        'processor',
-        'ramOption',
-        'storageType',
-        'graphicsCard',
-        'breed',
-        'ageRange',
-        'gender',
-        'engineCapacity',
-        'productStatus',
-      ],
-      order: { created_at: 'DESC' },
-    });
 
-    return this.formatProducts(products, currentUserId);
-  }
-
-  // --- Gợi ý khi người dùng đăng mua (so sánh subCategory, tìm sản phẩm đang bán) ---
-  async suggestForBuying(
-    subCategoryId: number,
-    currentUserId: number,
-  ): Promise<Product[]> {
-    const products = await this.productRepo.find({
-      where: {
-        subCategory: { id: subCategoryId },
-        postType: { id: 1 }, // 1 = đăng bán
-        user: { id: Not(currentUserId) },
-        productStatus: { id: 2 }, // Đã duyệt
-      },
-      relations: [
-        'images',
-        'user',
-        'dealType',
-        'condition',
-        'category',
-        'subCategory',
-        'category_change',
-        'sub_category_change',
-        'postType',
-        'productType',
-        'origin',
-        'material',
-        'size',
-        'brand',
-        'color',
-        'capacity',
-        'warranty',
-        'productModel',
-        'processor',
-        'ramOption',
-        'storageType',
-        'graphicsCard',
-        'breed',
-        'ageRange',
-        'gender',
-        'engineCapacity',
-        'productStatus',
-      ],
-      order: { created_at: 'DESC' },
-    });
-
-    return this.formatProducts(products, currentUserId);
-  }
 
   /**
    * Lấy "Feed Gợi ý" cá nhân hóa cho user:
@@ -2240,94 +2162,182 @@ export class ProductService {
     return [];
   }
 
+  // --- Gợi ý AI ---
+  private buildProductTextForAI(p: Product): string {
+    return `${p.name} ${p.description} ${p.price} ${p.condition?.name || ''} ${p.brand?.name || ''}`;
+  }
+
+  async suggestForSelling(subCategoryId: number, userId: number) {
+    const candidates = await this.productRepo.find({
+      where: {
+        sub_category_id: subCategoryId,
+        post_type_id: 2, // Đăng mua
+        user_id: Not(userId),
+        product_status_id: 2,
+        receive_suggestions: true,
+      },
+      relations: ['user', 'condition', 'brand', 'images', 'category', 'subCategory', 'dealType', 'postType'],
+    });
+
+    if (!candidates.length) return [];
+
+    const targetProduct = await this.productRepo.findOne({
+      where: { sub_category_id: subCategoryId, user_id: userId, post_type_id: 1 },
+      order: { created_at: 'DESC' },
+      relations: ['condition', 'brand']
+    });
+
+    if (!targetProduct) return await this.formatProducts(candidates);
+
+    const targetText = this.buildProductTextForAI(targetProduct);
+    const candidatePayload = candidates.map(c => ({ id: c.id, text: this.buildProductTextForAI(c) }));
+
+    try {
+      const aiResponse = await this.aiService.matchProducts(targetText, candidatePayload);
+      if (aiResponse?.success && aiResponse.data?.matches) {
+        const matches = aiResponse.data.matches;
+        // Lấy các kết quả có similarity >= 0.3
+        const sortedCandidates = matches
+          .filter((m: any) => m.similarity >= 0.3)
+          .map((m: any) => candidates.find(c => c.id === m.id))
+          .filter(Boolean);
+        return await this.formatProducts(sortedCandidates.slice(0, 10));
+      }
+    } catch (e) {
+      this.logger.error('Lỗi khi gọi AI matchProducts:', e);
+    }
+    
+    return await this.formatProducts(candidates);
+  }
+
+  async suggestForBuying(subCategoryId: number, userId: number) {
+    const candidates = await this.productRepo.find({
+      where: {
+        sub_category_id: subCategoryId,
+        post_type_id: 1, // Đăng bán
+        user_id: Not(userId),
+        product_status_id: 2,
+        receive_suggestions: true,
+      },
+      relations: ['user', 'condition', 'brand', 'images', 'category', 'subCategory', 'dealType', 'postType'],
+    });
+
+    if (!candidates.length) return [];
+
+    const targetProduct = await this.productRepo.findOne({
+      where: { sub_category_id: subCategoryId, user_id: userId, post_type_id: 2 },
+      order: { created_at: 'DESC' },
+      relations: ['condition', 'brand']
+    });
+
+    if (!targetProduct) return await this.formatProducts(candidates);
+
+    const targetText = this.buildProductTextForAI(targetProduct);
+    const candidatePayload = candidates.map(c => ({ id: c.id, text: this.buildProductTextForAI(c) }));
+
+    try {
+      const aiResponse = await this.aiService.matchProducts(targetText, candidatePayload);
+      if (aiResponse?.success && aiResponse.data?.matches) {
+        const matches = aiResponse.data.matches;
+        const sortedCandidates = matches
+          .filter((m: any) => m.similarity >= 0.3)
+          .map((m: any) => candidates.find(c => c.id === m.id))
+          .filter(Boolean);
+        return await this.formatProducts(sortedCandidates.slice(0, 10));
+      }
+    } catch (e) {
+      this.logger.error('Lỗi khi gọi AI matchProducts:', e);
+    }
+    
+    return await this.formatProducts(candidates);
+  }
+
+
   // src/product/product.service.ts
 
   async notifyMatchingPosts(productId: number) {
     try {
-      console.log(
-        `-------------- START CHECK MATCHING FOR PRODUCT ${productId} --------------`,
-      );
-
-      // 1. Lấy thông tin bài viết
+      console.log(`-------------- START CHECK MATCHING FOR PRODUCT ${productId} --------------`);
       const product = await this.productRepo.findOne({
         where: { id: productId },
-        relations: ['subCategory', 'postType', 'user'],
+        relations: ['subCategory', 'postType', 'user', 'condition', 'brand'],
       });
 
-      if (!product) {
-        console.log('❌ Lỗi: Không tìm thấy product trong DB');
-        return;
-      }
+      if (!product || !product.user || !product.subCategory) return;
 
-      console.log(
-        `ℹ️ Thông tin bài đăng: ID=${product.id}, PostType=${product.postType?.id} (${product.postType?.name}), User=${product.user?.id}`,
-      );
+      const oppositePostType = product.postType?.id === 1 ? 2 : 1;
+      
+      const candidates = await this.productRepo.find({
+        where: {
+          sub_category_id: product.subCategory.id,
+          post_type_id: oppositePostType,
+          product_status_id: 2,
+          user: { id: Not(product.user.id) },
+          receive_suggestions: true,
+        },
+        relations: ['user', 'condition', 'brand'],
+      });
 
-      // LOGIC: Chỉ chạy khi đây là bài ĐĂNG MUA (Giả sử ID 2 là "Cần mua")
-      if (Number(product.postType?.id) === 2) {
-        console.log(
-          `✅ Đây là bài ĐĂNG MUA (PostType=2). Bắt đầu tìm người bán...`,
-        );
+      if (candidates.length === 0) return;
 
-        if (!product.user) {
-          console.log('❌ Lỗi: Product không có User');
-          throw new Error('Sản phẩm không có người dùng');
+      const targetText = this.buildProductTextForAI(product);
+      const candidatePayload = candidates.map(c => ({ id: c.id, text: this.buildProductTextForAI(c) }));
+
+      try {
+        const aiResponse = await this.aiService.matchProducts(targetText, candidatePayload);
+        if (aiResponse?.success && aiResponse.data?.matches) {
+          const matches = aiResponse.data.matches.filter((m: any) => m.similarity >= 0.5);
+          
+          if (matches.length > 0) {
+            const userIdsToNotify = [...new Set(
+              matches
+                .map((m: any) => candidates.find(c => c.id === m.id)?.user?.id)
+                .filter(Boolean)
+            )] as number[];
+
+            if (userIdsToNotify.length > 0) {
+              await this.notificationService.notifyMatchingUsers(product, userIdsToNotify);
+            }
+          }
         }
-
-        // 2. Tìm tất cả bài ĐĂNG BÁN
-        const matchingSellPosts = await this.productRepo.find({
-          where: {
-            sub_category_id: product.subCategory.id,
-            post_type_id: 1, // 1 = Đăng bán
-            product_status_id: 2, // 2 = Đã duyệt
-            user: {
-              id: Not(product.user.id),
-            },
-          },
-          relations: ['user'],
-          select: {
-            id: true,
-            user: { id: true },
-          },
-        });
-
-        console.log(
-          `🔎 Tìm thấy ${matchingSellPosts.length} bài đăng bán phù hợp trong cùng danh mục.`,
-        );
-
-        if (matchingSellPosts.length > 0) {
-          const sellerIds = [
-            ...new Set(
-              matchingSellPosts
-                .filter((p) => p.user !== null)
-                .map((p) => p.user!.id),
-            ),
-          ];
-
-          console.log(
-            `🚀 Gửi thông báo cho các Seller ID: ${JSON.stringify(sellerIds)}`,
-          );
-
-          // 4. Gọi bên NotificationService để gửi
-          await this.notificationService.notifySellersOfBuyRequest(
-            product,
-            sellerIds,
-          );
-        } else {
-          console.log(
-            '⚠️ Không có người bán nào phù hợp (Matching list rỗng).',
-          );
-        }
-      } else {
-        // 👇👇👇 KHẢ NĂNG CAO LÀ NÓ RƠI VÀO ĐÂY 👇👇👇
-        console.log(
-          `⛔ BỎ QUA: Đây là bài ĐĂNG BÁN (PostType=${product.postType?.id}), logic chỉ chạy cho bài ĐĂNG MUA.`,
-        );
+      } catch (aiErr) {
+        this.logger.error('AI Matching failed in notifyMatchingPosts', aiErr);
       }
-
       console.log(`-------------- END CHECK --------------`);
     } catch (error) {
       this.logger.error(`Lỗi trong notifyMatchingPosts: ${error.message}`);
     }
+  }
+
+  // --- Hết hạn gợi ý 30 ngày ---
+  async getExpiringInterests(userId: number) {
+    // Tìm các bài đăng của user này có receive_suggestions = true, 
+    // và tuổi thọ > 30 ngày kể từ (suggestions_last_asked_at HOẶC created_at)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const qb = this.productRepo.createQueryBuilder('product')
+      .where('product.user_id = :userId', { userId })
+      .andWhere('product.receive_suggestions = :recv', { recv: true })
+      .andWhere(`
+        (product.suggestions_last_asked_at IS NOT NULL AND product.suggestions_last_asked_at <= :date)
+        OR
+        (product.suggestions_last_asked_at IS NULL AND product.created_at <= :date)
+      `, { date: thirtyDaysAgo })
+      .orderBy('product.created_at', 'DESC');
+
+    const products = await qb.getMany();
+    return this.formatProducts(products);
+  }
+
+  async renewInterest(productId: number, userId: number, keepSuggesting: boolean) {
+    const product = await this.productRepo.findOne({ where: { id: productId, user_id: userId }});
+    if (!product) throw new NotFoundException('Không tìm thấy sản phẩm');
+
+    product.receive_suggestions = keepSuggesting;
+    product.suggestions_last_asked_at = new Date();
+    await this.productRepo.save(product);
+
+    return { success: true };
   }
 }

@@ -376,7 +376,7 @@ const renderProductItem = ({ item }: { item: Product }) => {
       {isLoading ? (
         <ActivityIndicator
           size="large"
-          color="#8c7ae6"
+          color="#3366FF"
           className="flex-1 mt-10"
         />
       ) : (

@@ -285,6 +285,12 @@ export class Product {
   })
   expires_at: Date | null;
 
+  @Column({ type: 'boolean', default: true })
+  receive_suggestions: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  suggestions_last_asked_at: Date | null;
+
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;
 

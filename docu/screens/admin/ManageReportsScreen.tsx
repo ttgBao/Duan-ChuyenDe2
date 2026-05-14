@@ -407,7 +407,7 @@ export default function ManageReportsScreen() {
       {isLoading ? (
         <ActivityIndicator
           size="large"
-          color="#8c7ae6"
+          color="#3366FF"
           className="flex-1 mt-10"
         />
       ) : (

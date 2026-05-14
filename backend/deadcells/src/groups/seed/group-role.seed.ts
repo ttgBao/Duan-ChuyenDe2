@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { GroupRole } from 'src/entities/group-role.entity';
 
 @Injectable()
-export class GroupRoleSeedService {
+export class GroupRoleSeedService implements OnModuleInit {
   constructor(private readonly dataSource: DataSource) {}
 
-  async run() {
+  async onModuleInit() {
     const repo = this.dataSource.getRepository(GroupRole);
 
     const roles = [

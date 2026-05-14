@@ -5,10 +5,12 @@ import { UsersController } from './users.controller';
 import { User } from 'src/entities/user.entity';
 import { Rating } from 'src/entities/rating.entity';
 
+import { UserSeedService } from './seed/user.seed';
+
 @Module({
   imports: [TypeOrmModule.forFeature([User, Rating])],
   controllers: [UsersController],
-  providers: [UsersService],
+  providers: [UsersService, UserSeedService],
   exports: [UsersService], 
 })
 export class UsersModule {}

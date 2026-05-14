@@ -6,6 +6,7 @@ import {
   IsOptional,
   Matches,
   MinLength,
+  Min,
 } from 'class-validator';
 
 export class RegisterDto {
@@ -30,5 +31,6 @@ export class RegisterDto {
   phone?: string;
 
   @IsNumber()
+  @Min(1, { message: 'Vui lòng chọn Khoa hợp lệ' })
   group_id: number;
 }

@@ -16,6 +16,7 @@ import debounce from "lodash.debounce";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { RootStackParamList } from "../../types";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import * as ImagePicker from "expo-image-picker";
 
 type SearchNavProp = NativeStackNavigationProp<RootStackParamList, "SearchProduct">;
 
@@ -131,6 +132,25 @@ const SearchProduct = () => {
     await AsyncStorage.removeItem("search_history");
   };
 
+  const handleImageSearch = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      alert("Bạn cần cấp quyền truy cập thư viện ảnh để tìm kiếm bằng hình ảnh!");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      // Chuyển sang màn hình kết quả với tham số ảnh AI
+      navigation.navigate("SearchResultScreen", { imageUri: result.assets[0].uri, isAiSearch: true });
+    }
+  };
+
   const renderItem = ({ item }: { item: string }) => (
     <TouchableOpacity
       onPress={() => handleSearch(item)}
@@ -167,7 +187,11 @@ const SearchProduct = () => {
             <TouchableOpacity onPress={() => setQuery("")}>
               <Feather name="x-circle" size={20} color="#aaa" />
             </TouchableOpacity>
-          ) : null}
+          ) : (
+            <TouchableOpacity onPress={handleImageSearch}>
+              <Feather name="camera" size={20} color="#007AFF" />
+            </TouchableOpacity>
+          )}
         </View>
         <TouchableOpacity
           onPress={() => hasQuery && handleSearch()}

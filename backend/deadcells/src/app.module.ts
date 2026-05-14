@@ -47,6 +47,7 @@ import { ProductStatusModule } from './product-statuses/product-status.module';
 import { AdminModule } from './admin/admin.module';
 import { NotificationModule } from './notification/notification.module';
 import { FollowModule } from './follow/follow.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -103,6 +104,7 @@ import { FollowModule } from './follow/follow.module';
     EngineCapacityModule,
     ProductStatusModule,
     AdminModule,
+    AiModule,
   ],
   
   controllers: [AppController],

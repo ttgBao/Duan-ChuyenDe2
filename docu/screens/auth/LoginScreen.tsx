@@ -1,10 +1,10 @@
 import { StatusBar } from "expo-status-bar";
-import { Text, View, Alert, Linking, Pressable, TextInput } from "react-native";
+import { Text, View, Alert, Linking, Pressable, TextInput, Image, ScrollView } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
+import { LinearGradient } from 'expo-linear-gradient';
 import "../../global.css";
 import { useState } from "react";
 import Button from "../../components/Button";
-import HeaderAuth from "../../components/HeaderAuth";
 import FloatingInput from "../../components/FloatingInput";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../types";
@@ -184,29 +184,40 @@ export default function LoginScreen({ navigation }: Props) {
   };
 
   return (
-    <View className="">
-      <View className="pl-5 pt-20">
-        <FontAwesome
-          name="arrow-left"
-          size={20}
-          color="#000"
-          onPress={() => navigation.navigate("Home")}
-        />
-      </View>
-
-      <StatusBar style="auto" />
-      <HeaderAuth value="Đăng nhập" />
-
-      {loginError && (
-        <View className="flex items-center px-2">
-          <View className="flex-row gap-2 bg-red-100 py-4 justify-center w-full rounded-xl px-3">
-            <FontAwesome name="warning" size={16} color="red" />
-            <Text>{loginError}</Text>
+    <LinearGradient 
+      colors={['#3366FF', '#2952CC', '#1F5499']} 
+      locations={[0, 0.5, 1]}
+      className="flex-1"
+    >
+      <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
+        <StatusBar style="light" />
+        <View className="flex-row items-center justify-between px-5 pt-14 pb-8">
+          <View className="flex-row items-center gap-4">
+            <FontAwesome
+              onPress={() => navigation.navigate("Home")}
+              name="arrow-left"
+              size={20}
+              color="#fff"
+            />
+            <Text className="text-3xl font-bold text-white">Đăng nhập</Text>
           </View>
+          <Image 
+            className="w-[46px] h-[46px] rounded-full bg-white"
+            source={require('../../assets/TDC.jpg')}
+          />
         </View>
-      )}
 
-      <View className="mt-10 px-2">
+        <View className="flex-1 bg-white rounded-t-[40px] px-5 pt-8 pb-5">
+          {loginError && (
+            <View className="flex items-center px-2 mb-4">
+              <View className="flex-row gap-2 bg-red-100 py-4 justify-center w-full rounded-xl px-3">
+                <FontAwesome name="warning" size={16} color="red" />
+                <Text>{loginError}</Text>
+              </View>
+            </View>
+          )}
+
+          <View className="mt-2 px-2">
         {/* Email */}
         <FloatingInput
           label="Email"
@@ -217,6 +228,7 @@ export default function LoginScreen({ navigation }: Props) {
           autoCorrect={false}
           textContentType="emailAddress"
           autoComplete="email"
+          inputClassName="bg-[#D9D9D9]/30 border-gray-300"
         />
 
         {/* Password */}
@@ -232,6 +244,7 @@ export default function LoginScreen({ navigation }: Props) {
           autoComplete="password"
           onSubmitEditing={handleLogin}
           returnKeyType="done"
+          inputClassName="bg-[#D9D9D9]/30 border-gray-300"
         />
 
         <Text
@@ -246,6 +259,7 @@ export default function LoginScreen({ navigation }: Props) {
           onPress={handleLogin}
           loading={isLoading}
           disabled={isLoading}
+          containerClassName="bg-[#3366FF]"
         />
 
         <View className="flex flex-row gap-2 justify-center mt-5 items-center ">
@@ -268,7 +282,7 @@ export default function LoginScreen({ navigation }: Props) {
       </View>
 
       <View className="w-full h-[1px] bg-gray-300 mt-10" />
-      <View className="flex flex-row gap-6 justify-center mt-5">
+      <View className="flex flex-row gap-6 justify-center mt-5 mb-10">
         <Text className="text-[12px] border-r pr-5 ">Cao Đẳng CN Thủ Đức</Text>
         <Text className="text-[12px] border-r pr-5">Chính sách bảo mật</Text>
         <Text
@@ -319,6 +333,8 @@ export default function LoginScreen({ navigation }: Props) {
           </Pressable>
         </Pressable>
       </Modal>
-    </View>
+        </View>
+      </ScrollView>
+    </LinearGradient>
   );
 }

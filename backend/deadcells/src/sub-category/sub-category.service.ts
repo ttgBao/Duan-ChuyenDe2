@@ -87,8 +87,8 @@ export class SubCategoryService {
 
   async findByCategory(category_id: number) {
     return this.subCategoryRepo.find({
-      where: { parent_category_id: category_id },
-      relations: ['parentCategory'],
+      where: { category_id: category_id },
+      relations: ['category'],
     });
   }
 }

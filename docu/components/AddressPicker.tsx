@@ -14,7 +14,8 @@ import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 
 const { width } = Dimensions.get("window");
-const API_BASE = "https://vn-public-apis.fpo.vn";
+// Sử dụng API mới ổn định hơn
+const API_BASE = "https://esgoo.net/api-tinhthanh";
 
 // Kiểu dữ liệu cho các phần địa chỉ được tách ra
 interface InitialAddressParts {
@@ -95,16 +96,16 @@ export default function AddressPicker({
 
   useEffect(() => {
     setIsLoadingProvinces(true);
-    fetch(`${API_BASE}/provinces/getAll?limit=-1`)
+    fetch(`${API_BASE}/1/0.htm`)
       .then((res) => res.json())
       .then((data) => {
-        const allProvinces = data.data?.data || [];
+        const allProvinces = data.data || [];
         setProvinces(allProvinces); // 3. Tự động chọn Tỉnh (nếu có)
 
         if (isAutoSelecting.current && initialParts.current) {
           const foundProvince = allProvinces.find(
             (p: any) =>
-              p.nameWithType === initialParts.current?.provinceName ||
+              p.full_name === initialParts.current?.provinceName ||
               p.name === initialParts.current?.provinceName
           );
           if (foundProvince) {
@@ -121,7 +122,7 @@ export default function AddressPicker({
 
   const handleSelectProvince = async (province: any) => {
     setSelectedProvince(province);
-    setProvinceText(province.nameWithType || province.name);
+    setProvinceText(province.full_name || province.name);
     setShowProvinceModal(false); // Reset Huyện và Xã
 
     setSelectedDistrict(null);
@@ -136,15 +137,15 @@ export default function AddressPicker({
     setIsLoadingDistricts(true);
     try {
       const res = await axios.get(
-        `${API_BASE}/districts/getByProvince?provinceCode=${province.code}&limit=-1`
+        `${API_BASE}/2/${province.id}.htm`
       );
-      const allDistricts = res.data.data?.data || [];
+      const allDistricts = res.data.data || [];
       setDistricts(allDistricts); // 5. Tự động chọn Huyện (nếu có)
 
       if (isAutoSelecting.current && initialParts.current) {
         const foundDistrict = allDistricts.find(
           (d: any) =>
-            d.nameWithType === initialParts.current?.districtName ||
+            d.full_name === initialParts.current?.districtName ||
             d.name === initialParts.current?.districtName
         );
         if (foundDistrict) {
@@ -163,7 +164,7 @@ export default function AddressPicker({
 
   const handleSelectDistrict = async (district: any) => {
     setSelectedDistrict(district);
-    setDistrictText(district.nameWithType || district.name);
+    setDistrictText(district.full_name || district.name);
     setShowDistrictModal(false); // Reset Xã
 
     setSelectedWard(null);
@@ -174,15 +175,15 @@ export default function AddressPicker({
     setIsLoadingWards(true);
     try {
       const res = await axios.get(
-        `${API_BASE}/wards/getByDistrict?districtCode=${district.code}&limit=-1`
+        `${API_BASE}/3/${district.id}.htm`
       );
-      const allWards = res.data.data?.data || [];
+      const allWards = res.data.data || [];
       setWards(allWards); // 7. Tự động chọn Xã (nếu có)
 
       if (isAutoSelecting.current && initialParts.current) {
         const foundWard = allWards.find(
           (w: any) =>
-            w.nameWithType === initialParts.current?.wardName ||
+            w.full_name === initialParts.current?.wardName ||
             w.name === initialParts.current?.wardName
         );
         if (foundWard) {
@@ -201,7 +202,7 @@ export default function AddressPicker({
 
   const handleSelectWard = (ward: any) => {
     setSelectedWard(ward);
-    setWardText(ward.nameWithType || ward.name);
+    setWardText(ward.full_name || ward.name);
     setShowWardModal(false); // Nếu người dùng tự chọn, dừng autoSelect
 
     if (isAutoSelecting.current) {
@@ -216,9 +217,9 @@ export default function AddressPicker({
       if (village.trim()) {
         parts.push(village.trim());
       }
-      parts.push(selectedWard.nameWithType || selectedWard.name);
-      parts.push(selectedDistrict.nameWithType || selectedDistrict.name);
-      parts.push(selectedProvince.nameWithType || selectedProvince.name);
+      parts.push(selectedWard.full_name || selectedWard.name);
+      parts.push(selectedDistrict.full_name || selectedDistrict.name);
+      parts.push(selectedProvince.full_name || selectedProvince.name);
 
       const fullAddress = parts.join(", ");
       onChange(fullAddress);
@@ -263,9 +264,9 @@ export default function AddressPicker({
         <View style={styles.dropdownContent}>
           <Text style={styles.dropdownText}>{provinceText}</Text>
           {isLoadingProvinces ? (
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
           ) : (
-            <Ionicons name="chevron-down" size={20} color="#8c7ae6" />
+            <Ionicons name="chevron-down" size={20} color="#3366FF" />
           )}
         </View>
       </TouchableOpacity>
@@ -278,9 +279,9 @@ export default function AddressPicker({
         <View style={styles.dropdownContent}>
           <Text style={styles.dropdownText}>{districtText}</Text>
           {isLoadingDistricts ? (
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
           ) : (
-            <Ionicons name="chevron-down" size={20} color="#8c7ae6" />
+            <Ionicons name="chevron-down" size={20} color="#3366FF" />
           )}
         </View>
       </TouchableOpacity>
@@ -293,9 +294,9 @@ export default function AddressPicker({
         <View style={styles.dropdownContent}>
           <Text style={styles.dropdownText}>{wardText}</Text>
           {isLoadingWards ? (
-            <ActivityIndicator size="small" color="#8c7ae6" />
+            <ActivityIndicator size="small" color="#3366FF" />
           ) : (
-            <Ionicons name="chevron-down" size={20} color="#8c7ae6" />
+            <Ionicons name="chevron-down" size={20} color="#3366FF" />
           )}
         </View>
       </TouchableOpacity>
@@ -320,19 +321,19 @@ export default function AddressPicker({
             <ScrollView style={styles.modalScroll}>
               {provinces.map((p) => (
                 <TouchableOpacity
-                  key={p.code}
+                  key={p.id}
                   onPress={() => handleManualSelectProvince(p)}
                   style={[
                     styles.modalItem,
-                    selectedProvince?.code === p.code &&
+                    selectedProvince?.id === p.id &&
                       styles.modalItemSelected,
                   ]}
                 >
                   <Text style={styles.modalItemText}>
-                    {p.nameWithType || p.name}
+                    {p.full_name || p.name}
                   </Text>
-                  {selectedProvince?.code === p.code && (
-                    <Ionicons name="checkmark" size={20} color="#8c7ae6" />
+                  {selectedProvince?.id === p.id && (
+                    <Ionicons name="checkmark" size={20} color="#3366FF" />
                   )}
                 </TouchableOpacity>
               ))}
@@ -361,19 +362,19 @@ export default function AddressPicker({
               ) : (
                 districts.map((d) => (
                   <TouchableOpacity
-                    key={d.code}
+                    key={d.id}
                     onPress={() => handleManualSelectDistrict(d)}
                     style={[
                       styles.modalItem,
-                      selectedDistrict?.code === d.code &&
+                      selectedDistrict?.id === d.id &&
                         styles.modalItemSelected,
                     ]}
                   >
                     <Text style={styles.modalItemText}>
-                      {d.nameWithType || d.name}
+                      {d.full_name || d.name}
                     </Text>
-                    {selectedDistrict?.code === d.code && (
-                      <Ionicons name="checkmark" size={20} color="#8c7ae6" />
+                    {selectedDistrict?.id === d.id && (
+                      <Ionicons name="checkmark" size={20} color="#3366FF" />
                     )}
                   </TouchableOpacity>
                 ))
@@ -403,18 +404,18 @@ export default function AddressPicker({
               ) : (
                 wards.map((w) => (
                   <TouchableOpacity
-                    key={w.code}
+                    key={w.id}
                     onPress={() => handleManualSelectWard(w)}
                     style={[
                       styles.modalItem,
-                      selectedWard?.code === w.code && styles.modalItemSelected,
+                      selectedWard?.id === w.id && styles.modalItemSelected,
                     ]}
                   >
                     <Text style={styles.modalItemText}>
-                      {w.nameWithType || w.name}
+                      {w.full_name || w.name}
                     </Text>
-                    {selectedWard?.code === w.code && (
-                      <Ionicons name="checkmark" size={20} color="#8c7ae6" />
+                    {selectedWard?.id === w.id && (
+                      <Ionicons name="checkmark" size={20} color="#3366FF" />
                     )}
                   </TouchableOpacity>
                 ))

@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { join } from 'path';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import * as express from 'express';
 import * as fs from 'fs';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 
@@ -24,6 +25,10 @@ async function bootstrap() {
 
   // CORS
   app.enableCors({ origin: '*', credentials: true });
+
+  // Tăng giới hạn payload JSON cho base64 upload
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
   // Validation
   app.useGlobalPipes(

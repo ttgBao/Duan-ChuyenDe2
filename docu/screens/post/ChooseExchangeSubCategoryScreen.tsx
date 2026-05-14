@@ -24,8 +24,7 @@ export default function ChooseExchangeSubCategoryScreen({ navigation, route }: a
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const endpointKey = categoryEndpoints[Number(category.id)];
-    const fullUrl = `${path}/sub-categories/${endpointKey}`;
+    const fullUrl = `${path}/sub-categories/by-category/${category.id}`;
 
     axios.get(fullUrl)
       .then((res) => {
@@ -49,7 +48,7 @@ export default function ChooseExchangeSubCategoryScreen({ navigation, route }: a
   return (
     <SafeAreaView style={{ flex: 1 }}>
       {/* Header */}
-      <View style={{ flexDirection: "row", padding: 12, backgroundColor: "#8c7ae6", justifyContent: "space-between", marginTop: 20 }}>
+      <View style={{ flexDirection: "row", padding: 12, backgroundColor: "#3366FF", justifyContent: "space-between", marginTop: 20 }}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>

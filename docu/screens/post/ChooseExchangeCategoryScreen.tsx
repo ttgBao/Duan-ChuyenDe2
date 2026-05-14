@@ -46,7 +46,7 @@ export default function ChooseExchangeCategoryScreen({ navigation, route }: any)
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      <View style={{ flexDirection: "row", padding: 12, backgroundColor: "#8c7ae6", justifyContent: "space-between", marginTop: 20 }}>
+      <View style={{ flexDirection: "row", padding: 12, backgroundColor: "#3366FF", justifyContent: "space-between", marginTop: 20 }}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
