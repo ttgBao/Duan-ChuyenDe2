@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MoreThan, Repository } from 'typeorm';
+import { MoreThan, Repository, In } from 'typeorm';
 import { ConversationRoom } from 'src/entities/conversation-room.entity';
 import { ConversationParticipant } from 'src/entities/conversation-participant.entity';
 import { Message } from 'src/entities/message.entity';
@@ -108,13 +108,26 @@ async sendMessage(
 
   const saved = await this.messageRepo.save(msg);
 
+  const savedWithSender = await this.messageRepo.findOne({
+    where: { id: saved.id },
+    relations: ['sender'],
+  });
+
   // 4️⃣ Cập nhật last_message
   await this.roomRepo.update(conversationId, {
     last_message_id: saved.id,
     last_message_at: saved.created_at,
   });
 
-  return saved;
+  // 5️⃣ Cập nhật status ACTIVE cho tất cả participant để bỏ lưu trữ / xóa mềm
+  await this.partRepo
+    .createQueryBuilder()
+    .update(ConversationParticipant)
+    .set({ status: 'ACTIVE' })
+    .where('conversation_id = :conversationId', { conversationId })
+    .execute();
+
+  return savedWithSender || saved;
 }
 
 
@@ -151,14 +164,15 @@ async markRead(conversationId: number, userId: number) {
 
 
 
-async getChatList(userId: number, limit = 20, offset = 0) {
+async getChatList(userId: number, limit = 20, offset = 0, status: string = 'ACTIVE') {
   const rooms = await this.roomRepo
     .createQueryBuilder('r')
     .leftJoinAndSelect('r.group', 'group')
-    .innerJoin('r.participants', 'me', 'me.user_id = :userId', { userId })
+    .innerJoin('r.participants', 'me', 'me.user_id = :userId AND me.status = :status', { userId, status })
     .leftJoinAndSelect('r.participants', 'p')
     .leftJoinAndSelect('p.user', 'u')
     .leftJoinAndSelect('r.last_message', 'm')
+    .where('(me.cleared_at IS NULL OR (r.last_message_at IS NOT NULL AND r.last_message_at > me.cleared_at))')
     .orderBy('r.last_message_at', 'DESC')
     .take(limit)
     .skip(offset)
@@ -167,11 +181,13 @@ async getChatList(userId: number, limit = 20, offset = 0) {
   // 🔹 Unread cho PAIR
   const privateUnread = await this.messageRepo
     .createQueryBuilder('msg')
+    .innerJoin(ConversationParticipant, 'cp', 'cp.conversation_id = msg.conversation_id AND cp.user_id = :userId', { userId })
     .select('msg.conversation_id', 'conversation_id')
     .addSelect('COUNT(msg.id)', 'count')
     .where('msg.receiver_id = :userId', { userId })
     .andWhere('msg.is_read = false')
     .andWhere('msg.is_recalled = false')
+    .andWhere('(cp.cleared_at IS NULL OR msg.created_at > cp.cleared_at)')
     .groupBy('msg.conversation_id')
     .getRawMany();
 
@@ -196,6 +212,7 @@ async getChatList(userId: number, limit = 20, offset = 0) {
     .andWhere('m.sender_id != :userId', { userId })
     .andWhere('m.is_recalled = false')
     .andWhere('m.created_at > COALESCE(cp.last_read_at, :epoch)', { epoch })
+    .andWhere('(cp.cleared_at IS NULL OR m.created_at > cp.cleared_at)')
     .groupBy('m.conversation_id')
     .getRawMany();
 
@@ -275,7 +292,15 @@ if (room.room_type === 'PAIR') {
   // 3️⃣ Lấy tin nhắn
   const qb = this.messageRepo
     .createQueryBuilder('m')
+    .innerJoin(
+      ConversationParticipant,
+      'cp',
+      'cp.conversation_id = m.conversation_id AND cp.user_id = :userId',
+      { userId }
+    )
+    .leftJoinAndSelect('m.sender', 'sender')
     .where('m.conversation_id = :roomId', { roomId })
+    .andWhere('(cp.cleared_at IS NULL OR m.created_at > cp.cleared_at)')
     .orderBy('m.created_at', 'ASC')
     .limit(limit);
 
@@ -292,9 +317,11 @@ async countUnreadMessages(userId: number): Promise<number> {
   // 🔹 1–1: tin nhắn gửi trực tiếp tới userId, chưa đọc
   const privateCount = await this.messageRepo
     .createQueryBuilder('m')
+    .innerJoin(ConversationParticipant, 'cp', 'cp.conversation_id = m.conversation_id AND cp.user_id = :userId', { userId })
     .where('m.receiver_id = :userId', { userId })
     .andWhere('m.is_read = false')
     .andWhere('m.is_recalled = false')
+    .andWhere('(cp.cleared_at IS NULL OR m.created_at > cp.cleared_at)')
     .getCount();
 
   // 🔹 GROUP: tin nhắn trong các room GROUP mà userId chưa đọc (dựa vào last_read_at)
@@ -313,6 +340,7 @@ async countUnreadMessages(userId: number): Promise<number> {
     .andWhere('m.sender_id != :userId', { userId }) // không tính tin do chính userId gửi
     .andWhere('m.is_recalled = false')
     .andWhere('m.created_at > COALESCE(cp.last_read_at, :epoch)', { epoch })
+    .andWhere('(cp.cleared_at IS NULL OR m.created_at > cp.cleared_at)')
     .getCount();
 
   const total = privateCount + groupCount;
@@ -416,19 +444,23 @@ if (Number(msg.sender_id) !== Number(userId)) throw new Error('Bạn không th�
           'cp.conversation_id = m.conversation_id AND cp.user_id = :uid',
           { uid: userId },
         )
+        .leftJoin('m.sender', 'sender')
+        .addSelect(['sender.id', 'sender.nickname', 'sender.image'])
         .andWhere('m.message_type = :t', { t: 'TEXT' })
         .andWhere('m.is_recalled = false');
 
       if (opts?.roomId) qb.andWhere('m.conversation_id = :rid', { rid: opts.roomId });
       if (opts?.cursor) qb.andWhere('m.created_at < :cursor', { cursor: new Date(opts.cursor) });
 
-      const expr = useUnaccent ? `public.unaccent(m.content)` : `m.content`;
+      const exprContent = useUnaccent ? `public.unaccent(m.content)` : `m.content`;
+      const exprSender = useUnaccent ? `public.unaccent(COALESCE(sender.nickname, ''))` : `COALESCE(sender.nickname, '')`;
       const likeParam = `%${keyword}%`;
-      qb.andWhere(`${expr} ILIKE ${useUnaccent ? 'public.unaccent(:like)' : ':like'}`, { like: likeParam });
+
+      qb.andWhere(`(${exprContent} ILIKE ${useUnaccent ? 'public.unaccent(:like)' : ':like'} OR ${exprSender} ILIKE ${useUnaccent ? 'public.unaccent(:like)' : ':like'})`, { like: likeParam });
 
       if (useSimilarity) {
         qb.addSelect(
-          `similarity(${useUnaccent ? 'public.unaccent(m.content)' : 'm.content'}, ${useUnaccent ? 'public.unaccent(:kw)' : ':kw'})`,
+          `GREATEST(similarity(${useUnaccent ? 'public.unaccent(m.content)' : 'm.content'}, ${useUnaccent ? 'public.unaccent(:kw)' : ':kw'}), similarity(${useUnaccent ? 'public.unaccent(COALESCE(sender.nickname, \'\'))' : 'COALESCE(sender.nickname, \'\')'}, ${useUnaccent ? 'public.unaccent(:kw)' : ':kw'}))`,
           'rank',
         )
           .setParameter('kw', keyword)
@@ -442,10 +474,34 @@ if (Number(msg.sender_id) !== Number(userId)) throw new Error('Bạn không th�
 
       const rows = await qb.getRawAndEntities();
 
+      const roomIds = [...new Set(rows.entities.map(m => Number(m.conversation_id)))];
+      const rooms = roomIds.length > 0 ? await this.roomRepo.find({
+        where: { id: In(roomIds) },
+        relations: ['group', 'participants', 'participants.user'],
+      }) : [];
+      const roomMap = new Map(rooms.map(r => [Number(r.id), r]));
+
       const items = rows.entities.map((m, i) => {
         const raw = rows.raw[i]?.rank;
         const num = typeof raw === 'number' ? raw : Number.parseFloat(raw ?? '0');
         const rounded = Number.isFinite(num) ? Math.round(num * 1e4) / 1e4 : 0;
+
+        const room = roomMap.get(Number(m.conversation_id));
+        let roomName = 'Cuộc trò chuyện';
+        let roomAvatar = 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+
+        if (room) {
+          if (room.room_type === 'GROUP' && room.group) {
+            roomName = room.group.name;
+            roomAvatar = room.group.thumbnail_url || roomAvatar;
+          } else {
+            const partner = room.participants.find(p => Number(p.user_id) !== userId)?.user;
+            if (partner) {
+              roomName = partner.nickname || partner.fullName || roomName;
+              roomAvatar = partner.image || roomAvatar;
+            }
+          }
+        }
 
         return {
           id: m.id,
@@ -661,22 +717,26 @@ async countUnreadMessagesByRoom(userId: number, roomId: number): Promise<number>
   });
   if (!room) return 0;
 
+  const participant = room.participants.find((p) => Number(p.user_id) === Number(userId));
+  if (!participant) return 0;
+
+  const clearedAt = participant.cleared_at ?? new Date(0);
+
   if (room.room_type === 'PAIR') {
     // Tin nhắn 1–1 gửi tới user này trong room
-    return await this.messageRepo.count({
-      where: {
-        conversation_id: roomId,
-        receiver_id: userId,
-        is_read: false,
-        is_recalled: false,
-      },
-    });
+    return await this.messageRepo
+      .createQueryBuilder('m')
+      .where('m.conversation_id = :roomId', { roomId })
+      .andWhere('m.receiver_id = :userId', { userId })
+      .andWhere('m.is_read = false')
+      .andWhere('m.is_recalled = false')
+      .andWhere('m.created_at > :clearedAt', { clearedAt })
+      .getCount();
   } else {
     // GROUP
-    const participant = room.participants.find((p) => p.user_id === userId);
-    if (!participant) return 0;
-
-    const since = participant.last_read_at ?? new Date(0);
+    const since = participant.last_read_at && participant.last_read_at > clearedAt 
+      ? participant.last_read_at 
+      : clearedAt;
 
     return await this.messageRepo
       .createQueryBuilder('m')
@@ -688,5 +748,23 @@ async countUnreadMessagesByRoom(userId: number, roomId: number): Promise<number>
   }
 }
 
+  async updateChatStatus(userId: number, roomId: number, status: string) {
+    const participant = await this.partRepo.findOne({
+      where: { conversation_id: roomId, user_id: userId },
+    });
+    if (!participant) throw new Error('Không tìm thấy cuộc trò chuyện');
+    participant.status = status;
+    return await this.partRepo.save(participant);
+  }
+
+  async deleteChat(userId: number, roomId: number) {
+    const participant = await this.partRepo.findOne({
+      where: { conversation_id: roomId, user_id: userId },
+    });
+    if (!participant) throw new Error('Không tìm thấy cuộc trò chuyện');
+    participant.status = 'DELETED';
+    participant.cleared_at = new Date();
+    return await this.partRepo.save(participant);
+  }
 
 }

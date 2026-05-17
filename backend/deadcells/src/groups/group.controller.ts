@@ -110,8 +110,8 @@ export class GroupController {
 
   /** Lấy tất cả nhóm public */
   @Get('public')
-  async getPublicGroups() {
-    return this.groupService.getPublicGroups();
+  async getPublicGroups(@Query('userId') userId?: number) {
+    return this.groupService.getPublicGroups(userId ? Number(userId) : undefined);
   }
 
 /** Lấy danh sách nhóm PUBLIC user đã tham gia (pending = 3) */

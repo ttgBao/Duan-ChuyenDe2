@@ -7,6 +7,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Modal,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { FontAwesome5 } from "@expo/vector-icons";
@@ -31,6 +32,47 @@ export default function ChatListScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const currentUserIdRef = useRef<string>("");
   const { socketRef } = useChat();
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState<any>(null);
+  const [headerMenuVisible, setHeaderMenuVisible] = useState(false);
+
+  const handleLongPress = (room: any) => {
+    setSelectedRoom(room);
+    setModalVisible(true);
+  };
+
+  const handleArchive = async () => {
+    if (!selectedRoom) return;
+    try {
+      const token = await AsyncStorage.getItem("token");
+      await axios.patch(`${path}/chat/room/${selectedRoom.room_id}/status`, { status: "ARCHIVED" }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setModalVisible(false);
+      setSelectedRoom(null);
+      fetchChats();
+      Alert.alert("Thành công", "Đã chuyển đoạn chat vào mục lưu trữ.");
+    } catch (e) {
+      Alert.alert("Lỗi", "Không thể lưu trữ đoạn chat.");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedRoom) return;
+    try {
+      const token = await AsyncStorage.getItem("token");
+      await axios.delete(`${path}/chat/room/${selectedRoom.room_id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setModalVisible(false);
+      setSelectedRoom(null);
+      fetchChats();
+      Alert.alert("Thành công", "Đã xóa đoạn chat.");
+    } catch (e) {
+      Alert.alert("Lỗi", "Không thể xóa đoạn chat.");
+    }
+  };
 
   const fetchChats = useCallback(async () => {
     try {
@@ -187,7 +229,7 @@ useEffect(() => {
             color="gray"
             onPress={() => navigation.navigate("SearchScreen")}
           />
-          <FontAwesome5 name="bars" size={20} color="gray" />
+          <FontAwesome5 name="bars" size={20} color="gray" onPress={() => setHeaderMenuVisible(true)} />
         </View>
       </View>
 
@@ -232,6 +274,7 @@ useEffect(() => {
                     key={room.room_id}
                     className={`flex flex-row mb-2 px-4 py-3 ${unreadFlag ? "bg-blue-50" : ""}`}
                     onPress={() => handleOpenRoom(room)}
+                    onLongPress={() => handleLongPress(room)}
                   >
                     <View className="relative">
                       <Image
@@ -279,6 +322,54 @@ useEffect(() => {
           </View>
         </ScrollView>
       )}
+      {/* Modal Item Chat */}
+      <Modal visible={modalVisible} transparent={true} animationType="fade">
+        <TouchableOpacity 
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }} 
+          activeOpacity={1} 
+          onPress={() => setModalVisible(false)}
+        >
+          <View className="bg-white w-[80%] rounded-xl p-5 shadow-lg">
+            <Text className="text-lg font-bold text-center mb-5 border-b border-gray-200 pb-3">Tùy chọn đoạn chat</Text>
+            
+            <TouchableOpacity onPress={handleArchive} className="py-3 flex-row items-center border-b border-gray-100">
+              <FontAwesome5 name="archive" size={18} color="#3366FF" className="w-8 text-center" />
+              <Text className="text-base text-gray-800 ml-2">Lưu trữ đoạn chat</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={handleDelete} className="py-3 flex-row items-center border-b border-gray-100">
+              <FontAwesome5 name="trash-alt" size={18} color="#FF3B30" className="w-8 text-center" />
+              <Text className="text-base text-red-500 ml-2">Xóa đoạn chat</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => setModalVisible(false)} className="py-3 flex-row justify-center mt-2">
+              <Text className="text-base text-gray-500 font-semibold">Hủy</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Modal Header Menu */}
+      <Modal visible={headerMenuVisible} transparent={true} animationType="fade">
+        <TouchableOpacity 
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'flex-end', paddingTop: 80, paddingRight: 20 }} 
+          activeOpacity={1} 
+          onPress={() => setHeaderMenuVisible(false)}
+        >
+          <View className="bg-white rounded-lg shadow-xl w-48 overflow-hidden">
+            <TouchableOpacity 
+              className="px-4 py-3 border-b border-gray-100 flex-row items-center"
+              onPress={() => {
+                setHeaderMenuVisible(false);
+                navigation.navigate("ArchivedChatsScreen" as any);
+              }}
+            >
+              <FontAwesome5 name="archive" size={14} color="#555" />
+              <Text className="ml-3 text-gray-700">Đoạn chat lưu trữ</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       <Menu />
     </View>

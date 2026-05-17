@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import {
-  SafeAreaView,
   View,
   Text,
   TouchableOpacity,
@@ -9,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { path } from "../../config";
@@ -65,9 +65,10 @@ export default function ChooseSubCategoryScreen({ navigation, route }: any) {
     }
   };
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
@@ -97,21 +98,22 @@ export default function ChooseSubCategoryScreen({ navigation, route }: any) {
             </TouchableOpacity>
           ))
         )}
-      </ScrollView>
+        </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  safeArea: { flex: 1, backgroundColor: "#3366FF" },
+  container: { flex: 1, backgroundColor: "#F8F9FA" },
   header: {
-    height: 40,
-    backgroundColor: "#9D7BFF",
+    height: 56,
+    backgroundColor: "#3366FF",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 16,
-    marginTop: 24,
   },
   headerTitle: { fontSize: 18, fontWeight: "600", color: "#fff" },
   sectionHeader: {

@@ -29,6 +29,8 @@ type UiMsg = {
   text: string;
   time: string;
   senderId: string;
+  senderName?: string;
+  senderAvatar?: string | null;
   mediaUrl?: string | null;
   isRecalled: boolean;
   replyToId?: string | null;
@@ -38,7 +40,7 @@ type UiMsg = {
 type HeaderMeta = {
   room_type?: "PAIR" | "GROUP";
   partner?: { name?: string; avatar?: string } | null;
-  group?: { name?: string; thumbnail_url?: string } | null;
+  group?: { id?: number | string; name?: string; thumbnail_url?: string } | null;
 };
 
 // ⭐ Avatar default
@@ -577,6 +579,8 @@ export default function ChatRoomScreen({ navigation, route }: Props) {
       text: m.content ?? "",
       time: created.toLocaleTimeString("vi-VN").slice(0, 5),
       senderId: String(m.sender_id),
+      senderName: m.sender ? (m.sender.nickname || m.sender.name || "Ẩn danh") : undefined,
+      senderAvatar: m.sender ? (m.sender.image || m.sender.avatar || null) : undefined,
       mediaUrl: m.media_url ?? null,
       isRecalled: Boolean(m.is_recalled),
       replyToId: m.reply_to_id ? String(m.reply_to_id) : null,
@@ -619,17 +623,19 @@ export default function ChatRoomScreen({ navigation, route }: Props) {
   function InlineHighlight({
     text,
     keyword,
+    textColorClass = "",
   }: {
     text: string;
     keyword: string;
+    textColorClass?: string;
   }) {
     const parts = useMemo(() => splitHighlight(text, keyword), [text, keyword]);
-    if (!keyword) return <Text>{text}</Text>;
+    if (!keyword) return <Text className={textColorClass}>{text}</Text>;
     return (
-      <Text>
+      <Text className={textColorClass}>
         {parts.map((p, idx) =>
           p.hit ? (
-            <Text key={idx} className="bg-yellow-300 rounded-sm">
+            <Text key={idx} className="bg-yellow-300 rounded-sm text-black">
               {p.text}
             </Text>
           ) : (
@@ -690,15 +696,21 @@ export default function ChatRoomScreen({ navigation, route }: Props) {
             onPress={() => navigation.goBack()}
           />
 
-          {/* Avatar + tên mở UserInforScreen */}
+          {/* Avatar + tên mở UserInforScreen hoặc GroupDetailScreen */}
           <TouchableOpacity
             className="flex flex-row gap-2 items-center"
             activeOpacity={0.7}
-            onPress={() =>
-              navigation.navigate("UserInforScreen", {
-                userId: otherUserId ?? selfId,
-              })
-            }
+            onPress={() => {
+              if (!isPair && headerMeta?.group?.id) {
+                navigation.navigate("GroupDetailScreen", {
+                  groupId: headerMeta.group.id,
+                });
+              } else {
+                navigation.navigate("UserInforScreen", {
+                  userId: otherUserId ?? selfId,
+                });
+              }
+            }}
           >
             <Image
               className="w-[46px] h-[46px] rounded-full"
@@ -729,7 +741,9 @@ export default function ChatRoomScreen({ navigation, route }: Props) {
       >
         {messages.map((msg) => {
           const isMe = selfId && String(msg.senderId) === String(selfId);
-          const avatarUri = isMe ? selfAvatar : displayAvatar;
+          const avatarUri = isMe 
+            ? selfAvatar 
+            : (msg.senderAvatar || (isPair ? displayAvatar : DEFAULT_AVATAR));
 
           return (
             <View
@@ -740,10 +754,21 @@ export default function ChatRoomScreen({ navigation, route }: Props) {
             >
               {/* Avatar bên trái nếu là đối phương */}
               {!isMe && (
-                <Image
-                  source={{ uri: avatarUri }}
-                  className="w-8 h-8 rounded-full mt-4 mr-2"
-                />
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    if (msg.senderId) {
+                      navigation.navigate("UserInforScreen", {
+                        userId: Number(msg.senderId),
+                      });
+                    }
+                  }}
+                >
+                  <Image
+                    source={{ uri: avatarUri }}
+                    className="w-8 h-8 rounded-full mt-4 mr-2"
+                  />
+                </TouchableOpacity>
               )}
 
               {/* Cột nội dung tin nhắn */}
@@ -752,6 +777,13 @@ export default function ChatRoomScreen({ navigation, route }: Props) {
                   isMe ? "items-end" : "items-start"
                 }`}
               >
+                {/* Tên người gửi (nếu là nhóm và không phải mình) */}
+                {!isPair && !isMe && msg.senderName ? (
+                  <Text className="text-xs text-gray-500 ml-1 mb-1">
+                    {msg.senderName}
+                  </Text>
+                ) : null}
+
                 {/* Ô trích (mờ) */}
                 {msg.replyToId && !msg.isRecalled
                   ? renderReplyPreview(msg)
@@ -779,23 +811,23 @@ export default function ChatRoomScreen({ navigation, route }: Props) {
                         />
                       ) : null}
                       {msg.text?.trim() ? (
-                        <Text
+                        <View
                           className={`${
-                            isMe ? "bg-yellow-200" : "bg-gray-200"
-                          } px-3 py-3 rounded-xl`}
+                            isMe ? "bg-[#3366FF]" : "bg-gray-100"
+                          } px-4 py-3 rounded-2xl ${isMe ? "rounded-tr-sm" : "rounded-tl-sm"}`}
                           style={{ overflow: "hidden" }}
                         >
                           <InlineHighlight
                             text={msg.text}
                             keyword={searchKeyword}
+                            textColorClass={isMe ? "text-white text-[15px]" : "text-gray-800 text-[15px]"}
                           />
                           {msg.edited ? (
-                            <Text className="text-gray-500 text-xs">
-                              {" "}
+                            <Text className={`${isMe ? "text-blue-200" : "text-gray-400"} text-[10px] mt-1`}>
                               (đã chỉnh sửa)
                             </Text>
                           ) : null}
-                        </Text>
+                        </View>
                       ) : null}
                     </>
                   )}
@@ -813,10 +845,21 @@ export default function ChatRoomScreen({ navigation, route }: Props) {
 
               {/* Avatar bên phải nếu là mình */}
               {isMe && (
-                <Image
-                  source={{ uri: avatarUri }}
-                  className="w-8 h-8 rounded-full mt-4 ml-2"
-                />
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    if (msg.senderId) {
+                      navigation.navigate("UserInforScreen", {
+                        userId: Number(msg.senderId),
+                      });
+                    }
+                  }}
+                >
+                  <Image
+                    source={{ uri: avatarUri }}
+                    className="w-8 h-8 rounded-full mt-4 ml-2"
+                  />
+                </TouchableOpacity>
               )}
             </View>
           );
@@ -863,7 +906,7 @@ export default function ChatRoomScreen({ navigation, route }: Props) {
 
       {/* Input */}
       <KeyboardAvoidingView behavior="padding">
-        <View className="pb-1 pt-4 px-5 w-full bg-gray-100 shadow-xl rounded-t-2xl">
+        <View className="pb-8 pt-4 px-5 w-full bg-white border-t border-gray-100 shadow-xl rounded-t-3xl">
           {editTarget && (
             <View className="mb-2 bg-yellow-100 border-l-4 border-yellow-400 px-3 py-2 rounded">
               <View className="flex-row justify-between items-center">

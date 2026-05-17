@@ -37,6 +37,12 @@ export class ConversationParticipant {
   @Column({ type: 'timestamptz', nullable: true })
   last_read_at: Date | null;
 
+  @Column({ type: 'text', default: 'ACTIVE' })
+  status: string;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  cleared_at: Date | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 

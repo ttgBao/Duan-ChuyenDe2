@@ -56,7 +56,7 @@ export class GroupSeedService implements OnModuleInit {
       },
       {
         id: 3,
-        name: 'Khoa Y dược',
+        name: 'KHOA ĐÔNG PHƯƠNG',
         owner_id: ownerId,
         mustApprovePosts: true,
         description: 'Nhóm ngành về y học, điều dưỡng, dược phẩm',
@@ -67,7 +67,7 @@ export class GroupSeedService implements OnModuleInit {
       },
       {
         id: 4,
-        name: 'Khoa Ngôn ngữ Nhật',
+        name: 'KHOA Ô TÔ',
         owner_id: ownerId,
         mustApprovePosts: true,
         description: 'Nhóm ngành về tiếng Nhật',
@@ -78,7 +78,7 @@ export class GroupSeedService implements OnModuleInit {
       },
       {
         id: 5,
-        name: 'Khoa Ngôn ngữ Anh',
+        name: 'KHOA CƠ KHÍ',
         owner_id: ownerId,
         mustApprovePosts: true,
         description: 'Nhóm ngành về tiếng Anh',
@@ -89,7 +89,7 @@ export class GroupSeedService implements OnModuleInit {
       },
       {
         id: 6,
-        name: 'Khoa Luật',
+        name: 'KHOA CÔNG NGHỆ TỰ ĐỘNG',
         owner_id: ownerId,
         mustApprovePosts: true,
         description: 'Nhóm ngành về pháp luật, tư pháp, hành chính',
@@ -100,7 +100,7 @@ export class GroupSeedService implements OnModuleInit {
       },
       {
         id: 7,
-        name: 'Khoa Sư phạm',
+        name: 'KHOA KINH TẾ',
         owner_id: ownerId,
         mustApprovePosts: true,
         description: 'Nhóm ngành đào tạo giáo viên các cấp',
@@ -111,7 +111,7 @@ export class GroupSeedService implements OnModuleInit {
       },
       {
         id: 8,
-        name: 'Khoa Nông nghiệp',
+        name: 'KHOA DU LỊCH - KHÁCH SẠN',
         owner_id: ownerId,
         mustApprovePosts: true,
         description: 'Nhóm ngành về trồng trọt, chăn nuôi, thủy sản',
@@ -122,7 +122,7 @@ export class GroupSeedService implements OnModuleInit {
       },
       {
         id: 9,
-        name: 'Khoa Kiến trúc',
+        name: 'KHOA TIẾNG ANH',
         owner_id: ownerId,
         mustApprovePosts: true,
         description: 'Nhóm ngành thiết kế, kiến trúc, đồ họa',
@@ -133,7 +133,7 @@ export class GroupSeedService implements OnModuleInit {
       },
       {
         id: 10,
-        name: 'Khoa Du lịch',
+        name: 'KHOA ĐIỆN - ĐIỆN TỬ',
         owner_id: ownerId,
         mustApprovePosts: true,
         description: 'Nhóm ngành dịch vụ, quản lý du lịch và khách sạn',

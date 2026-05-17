@@ -27,8 +27,9 @@ export default function ForYouTab({
   const fetchData = async () => {
     try {
       const token = await AsyncStorage.getItem("token");
+      const userId = await AsyncStorage.getItem("userId");
 
-      const res = await axios.get(`${path}/groups/public`, {
+      const res = await axios.get(`${path}/groups/public${userId ? `?userId=${userId}` : ''}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -100,6 +101,27 @@ export default function ForYouTab({
               <Text className="text-gray-500 text-sm mt-0.5" numberOfLines={2}>
                 {g.description}
               </Text>
+            </View>
+            <View className="ml-2">
+              {g.joinStatus === "joined" ? (
+                <View className="bg-green-50 border border-green-200 px-2 py-1 rounded-md">
+                  <Text className="text-green-600 font-bold text-[11px]">
+                    Joined
+                  </Text>
+                </View>
+              ) : g.joinStatus === "pending" ? (
+                <View className="bg-yellow-50 border border-yellow-200 px-2 py-1 rounded-md">
+                  <Text className="text-yellow-600 font-bold text-[11px]">
+                    Pending
+                  </Text>
+                </View>
+              ) : (
+                <View className="bg-red-50 border border-red-200 px-2 py-1 rounded-md">
+                  <Text className="text-red-500 font-bold text-[11px]">
+                    Join
+                  </Text>
+                </View>
+              )}
             </View>
           </TouchableOpacity>
         ))}

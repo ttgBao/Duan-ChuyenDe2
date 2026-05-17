@@ -10,8 +10,8 @@ import {
   Dimensions,
   ActivityIndicator,
   Modal,
-  SafeAreaView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import * as ImagePicker from "expo-image-picker";
@@ -1675,9 +1675,10 @@ const PostFormScreen = ({
   const years = Array.from({ length: 60 }, (_, i) => currentYear - i);
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.navigate("Home")}
           style={styles.headerIcon}
@@ -3312,14 +3313,15 @@ const PostFormScreen = ({
           </View>
         </SafeAreaView>
       </Modal>
-
-    </View>
+      </View>
+    </SafeAreaView>
   );
 };
 
 export default PostFormScreen;
 
 const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: "#3366FF" },
   loadingContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -3340,11 +3342,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8fafc",
   },
   header: {
+    height: 56,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 4,
     backgroundColor: "#3366FF",
     elevation: 4,
     shadowColor: "#000",

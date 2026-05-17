@@ -61,6 +61,7 @@
     "typeorm": "^0.3.27"
   },
   "devDependencies": {
+    "@angular-devkit/schematics": "^21.2.11",
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.18.0",
     "@nestjs/cli": "^11.0.0",

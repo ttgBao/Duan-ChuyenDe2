@@ -2,6 +2,8 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -53,17 +55,45 @@ async openOrCreateRoom(
   /**
    * Lấy danh sách room (chatlist)
    * Tự động phân biệt user là buyer hay seller.
-   * Query: ?limit=20&offset=0
+   * Query: ?limit=20&offset=0&status=ACTIVE
    */
   @Get('list')
   async getChatList(
     @Req() req: Request,
     @Query('limit') limit = 20,
     @Query('offset') offset = 0,
+    @Query('status') status = 'ACTIVE',
   ) {
     const userId = req['user'].id;
-    const data = await this.chatService.getChatList(userId, Number(limit), Number(offset));
+    const data = await this.chatService.getChatList(userId, Number(limit), Number(offset), status);
     return { data };
+  }
+
+  /** 
+   * Cập nhật trạng thái đoạn chat (Lưu trữ/Khôi phục)
+   */
+  @Patch('room/:roomId/status')
+  async updateChatStatus(
+    @Req() req: Request,
+    @Param('roomId', ParseIntPipe) roomId: number,
+    @Body('status') status: string,
+  ) {
+    const userId = req['user'].id;
+    const data = await this.chatService.updateChatStatus(userId, roomId, status);
+    return { message: 'Đã cập nhật trạng thái', data };
+  }
+
+  /**
+   * Xóa mềm đoạn chat
+   */
+  @Delete('room/:roomId')
+  async deleteChat(
+    @Req() req: Request,
+    @Param('roomId', ParseIntPipe) roomId: number,
+  ) {
+    const userId = req['user'].id;
+    await this.chatService.deleteChat(userId, roomId);
+    return { message: 'Đã xóa đoạn chat' };
   }
 
   /**

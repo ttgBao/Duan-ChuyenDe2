@@ -17,6 +17,7 @@ import ChatListScreen from "./screens/chat/ChatListScreen";
 import SearchScreen from "./screens/chat/SearchScreen";
 import OTPVerifyScreen from "./screens/auth/OTPVerifyScreen";
 import ChatRoomScreen from "./screens/chat/ChatRoomScreen";
+import ArchivedChatsScreen from "./screens/chat/ArchivedChatsScreen";
 import UnreadMessageScreen from "./screens/chat/UnreadMessageScreen";
 import ManagePostsScreen from "./screens/post/ManagePostsScreen";
 import ChooseCategoryScreen from "./screens/post/ChooseCategoryScreen";
@@ -103,6 +104,7 @@ export default function App() {
                 component={OTPVerifyScreen}
               />
               <Stack.Screen name="ChatRoomScreen" component={ChatRoomScreen} />
+              <Stack.Screen name="ArchivedChatsScreen" component={ArchivedChatsScreen} />
               <Stack.Screen
                 name="UnreadMessageScreen"
                 component={UnreadMessageScreen}

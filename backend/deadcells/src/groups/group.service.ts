@@ -270,7 +270,7 @@ export class GroupService {
 
   // ==================== LIST GROUPS ====================
 
-  async getPublicGroups(): Promise<any[]> {
+  async getPublicGroups(userId?: number): Promise<any[]> {
     const groups = await this.groupRepo.find({
       where: { isPublic: true },
       relations: ['owner'],
@@ -280,6 +280,10 @@ export class GroupService {
     return Promise.all(
       groups.map(async (g) => {
         const memberCount = await this.countMembers(g.id);
+        let joinStatus = 'none';
+        if (userId) {
+          joinStatus = await this.getJoinStatus(g.id, userId);
+        }
         return {
           id: g.id,
           name: g.name,
@@ -288,6 +292,7 @@ export class GroupService {
           mustApprovePosts: g.mustApprovePosts,
           memberCount,
           isPublic: true,
+          joinStatus,
         };
       }),
     );

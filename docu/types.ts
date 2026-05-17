@@ -14,6 +14,7 @@ export type RootStackParamList = {
   ForgotPasswordScreen: undefined;
   NewPasswordScreen: { email: string; token: string };
   ChatListScreen: undefined;
+  ArchivedChatsScreen: undefined;
   OTPVerifyScreen: { email: string };
   ProductDetail: { product?: Product } | undefined;
   ManagePostsScreen: undefined;

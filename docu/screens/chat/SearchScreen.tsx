@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Text, View, TouchableOpacity, TextInput, FlatList, ActivityIndicator } from 'react-native';
+import { Text, View, TouchableOpacity, TextInput, FlatList, ActivityIndicator, Image } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Feather, FontAwesome5 } from "@expo/vector-icons";
 import "../../global.css";
@@ -16,6 +16,8 @@ type SearchItem = {
   content: string | null;
   created_at: string;
   rank: number;
+  sender?: { id: number; nickname: string; image: string | null } | null;
+  room?: { name: string; avatar: string } | null;
 };
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
@@ -128,13 +130,27 @@ export default function SearchScreen({ navigation }: Props) {
 
   const renderItem = ({ item }: { item: SearchItem }) => (
     <TouchableOpacity
-      className="px-4 py-3 border-b border-gray-100"
+      className="px-4 py-3 border-b border-gray-100 flex-row items-start"
       onPress={() => openFromSearch(item)}
     >
-      <Text className="text-gray-500 text-xs">
-        {new Date(item.created_at).toLocaleString()}
-      </Text>
-      <HighlightedText text={item.content ?? ''} keyword={debouncedQ} />
+      <Image
+        source={{ uri: item.room?.avatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png" }}
+        className="w-12 h-12 rounded-full mr-3"
+      />
+      <View className="flex-1">
+        <View className="flex-row justify-between items-center mb-1">
+          <Text className="font-bold text-base text-gray-800" numberOfLines={1}>
+            {item.room?.name || "Cuộc trò chuyện"}
+          </Text>
+          <Text className="text-gray-400 text-xs">
+            {new Date(item.created_at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+          </Text>
+        </View>
+        <Text className="text-gray-500 text-sm font-semibold mb-0.5">
+          {item.sender?.nickname || "Ai đó"}:
+        </Text>
+        <HighlightedText text={item.content ?? ''} keyword={debouncedQ} />
+      </View>
     </TouchableOpacity>
   );
 
