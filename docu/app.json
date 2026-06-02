@@ -37,6 +37,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "c3f840b0-0a24-4423-8a59-e6645c3e6080"
+      }
+    },
+    "owner": "tatrangiabao"
   }
 }

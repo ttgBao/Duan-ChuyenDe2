@@ -9,6 +9,8 @@ import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminLayout from './components/AdminLayout';
+import Groups from './pages/Groups';
+import Categories from './pages/Categories';
 
 function App() {
   return (
@@ -31,7 +33,9 @@ function App() {
           <Route path="users" element={<Users />} />
           <Route path="users/:id" element={<UserDetail />} />
           <Route path="pending-cccd" element={<PendingCCCD />} />
-          <Route path="products" element={<Products />} />
+           <Route path="products" element={<Products />} />
+          <Route path="groups" element={<Groups />} />
+          <Route path="categories" element={<Categories />} />
           <Route path="reports" element={<Reports />} />
           <Route path="settings" element={<Settings />} />
           

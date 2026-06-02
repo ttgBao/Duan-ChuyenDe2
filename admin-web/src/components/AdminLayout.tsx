@@ -10,8 +10,11 @@ import {
   LogOut,
   Menu,
   X,
-  User
+  User,
+  Boxes,
+  Layers
 } from 'lucide-react';
+import logoItTdc from '../assets/logo_it_tdc.jpg';
 
 const AdminLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -26,6 +29,8 @@ const AdminLayout: React.FC = () => {
     { name: 'Người dùng', path: '/users', icon: Users },
     { name: 'CCCD đang chờ', path: '/pending-cccd', icon: CreditCard },
     { name: 'Sản phẩm', path: '/products', icon: ShoppingBag },
+    { name: 'Nhóm cộng đồng', path: '/groups', icon: Boxes },
+    { name: 'Danh mục sản phẩm', path: '/categories', icon: Layers },
     { name: 'Báo cáo vi phạm', path: '/reports', icon: Flag },
     { name: 'Cài đặt', path: '/settings', icon: Settings },
   ];
@@ -63,11 +68,11 @@ const AdminLayout: React.FC = () => {
         <div>
           {/* Logo / Header */}
           <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800/60">
-            <Link to="/dashboard" className="flex items-center space-x-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-500/20">
-                A
+            <Link to="/dashboard" className="flex items-center space-x-3 group">
+              <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-700/80 shadow-md shadow-indigo-500/10 flex items-center justify-center bg-slate-950 group-hover:scale-105 transition-transform duration-200">
+                <img src={logoItTdc} alt="TDC IT Logo" className="w-full h-full object-cover" />
               </div>
-              <span className="font-bold text-lg bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+              <span className="font-bold text-base bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent group-hover:text-white transition-colors">
                 TDC Market Admin
               </span>
             </Link>

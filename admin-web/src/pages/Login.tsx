@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Lock, Mail, AlertCircle, Loader2 } from 'lucide-react';
 import api from '../services/api';
+import logoItTdc from '../assets/logo_it_tdc.jpg';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -107,8 +108,8 @@ const Login: React.FC = () => {
       <div className="w-full max-w-md glass-card rounded-2xl p-8 transition-all duration-300 hover:shadow-indigo-500/5">
         {/* Brand logo header */}
         <div className="text-center mb-8">
-          <div className="inline-flex w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-500 to-violet-500 items-center justify-center font-extrabold text-2xl text-white shadow-xl shadow-indigo-500/20 mb-4 animate-bounce">
-            A
+          <div className="inline-flex w-16 h-16 rounded-full overflow-hidden border border-slate-700/80 shadow-xl shadow-indigo-500/20 mb-4 bg-slate-950 hover:scale-105 transition-transform duration-300">
+            <img src={logoItTdc} alt="TDC IT Logo" className="w-full h-full object-cover" />
           </div>
           <h2 className="text-2xl font-bold text-white mb-1">TDC Market</h2>
           <p className="text-slate-400 text-sm">Hệ thống quản trị viên sàn đồ cũ</p>

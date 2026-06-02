@@ -83,4 +83,21 @@ export class AdminController {
       message: 'Đã xóa người dùng và toàn bộ dữ liệu liên quan vĩnh viễn.',
     };
   }
+
+  @Get('groups')
+  async getAllGroups() {
+    return this.adminService.getAllGroups();
+  }
+
+  @Delete('groups/:id')
+  async deleteGroup(@Param('id') id: string) {
+    const groupId = Number(id);
+    if (isNaN(groupId)) throw new BadRequestException('ID không hợp lệ');
+
+    await this.adminService.deleteGroup(groupId);
+    return {
+      success: true,
+      message: 'Đã xóa nhóm và toàn bộ dữ liệu liên quan vĩnh viễn.',
+    };
+  }
 }

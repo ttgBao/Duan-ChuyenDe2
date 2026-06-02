@@ -5,7 +5,9 @@ import {
   X, 
   Eye, 
   AlertCircle,
-  Clock
+  Clock,
+  Layers,
+  Search
 } from 'lucide-react';
 import api from '../services/api';
 
@@ -14,13 +16,24 @@ interface Product {
   name: string;
   price: number;
   description: string;
-  statusId: number; // 1 = Chờ duyệt, 2 = Đã duyệt, 3 = Từ chối/Bị ẩn
+  status_id?: number;
+  statusId?: number; // fallback support
   createdAt: string;
-  images?: string[];
+  created_at?: string;
+  images?: any[];
+  thumbnail_url?: string | null;
+  visibility_type?: number;
+  group_id?: number | null;
+  group?: {
+    id: number;
+    name: string;
+    isPublic: boolean;
+  } | null;
   user?: {
     id: number;
     nickname: string;
-    fullName: string;
+    fullName?: string;
+    email?: string;
   };
 }
 
@@ -29,6 +42,13 @@ const Products: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  
+  // Tabs: 0 = Public (Toàn trường), 1 = Group (Trong nhóm)
+  const [activeTab, setActiveTab] = useState<number>(0);
+  // Status filter: 'all', '1' (Chờ duyệt), '2' (Đã duyệt), '3' (Bị ẩn/Từ chối)
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  // Search query
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -38,30 +58,7 @@ const Products: React.FC = () => {
       setProducts(response.data || []);
     } catch (err: any) {
       console.error(err);
-      setError('Không thể tải danh sách sản phẩm. Sử dụng chế độ mô phỏng.');
-      // Mock data in case API fails
-      setProducts([
-        {
-          id: 1,
-          name: 'Laptop Dell Latitude 7490 i5/8G/256G',
-          price: 4500000,
-          description: 'Máy dùng mượt mà, phù hợp sinh viên học tập code web.',
-          statusId: 1,
-          createdAt: new Date().toISOString(),
-          images: [],
-          user: { id: 1, nickname: 'quan_dep_trai', fullName: 'Lê Minh Quân' }
-        },
-        {
-          id: 2,
-          name: 'Giáo trình Giải tích 1 & 2 TDC',
-          price: 0,
-          description: 'Sách giáo trình mới 95%, tặng lại cho bạn nào cần.',
-          statusId: 2,
-          createdAt: new Date().toISOString(),
-          images: [],
-          user: { id: 2, nickname: 'ha_kute', fullName: 'Nguyễn Thị Hà' }
-        }
-      ]);
+      setError('Không thể tải danh sách sản phẩm từ hệ thống.');
     } finally {
       setLoading(false);
     }
@@ -80,12 +77,17 @@ const Products: React.FC = () => {
       await api.patch(`/products/admin/status/${productId}`, {
         product_status_id: newStatusId
       });
-      alert(`Đã cập nhật trạng thái thành công!`);
       
       // Update local state
-      setProducts(prev => prev.map(p => p.id === productId ? { ...p, statusId: newStatusId } : p));
+      setProducts(prev => prev.map(p => {
+        if (p.id === productId) {
+          return { ...p, status_id: newStatusId, statusId: newStatusId };
+        }
+        return p;
+      }));
+      
       if (selectedProduct && selectedProduct.id === productId) {
-        setSelectedProduct(prev => prev ? { ...prev, statusId: newStatusId } : null);
+        setSelectedProduct(prev => prev ? { ...prev, status_id: newStatusId, statusId: newStatusId } : null);
       }
     } catch (err: any) {
       console.error(err);
@@ -93,20 +95,74 @@ const Products: React.FC = () => {
     }
   };
 
+  // Get image URL safely
+  const getProductImage = (product: Product): string => {
+    if (product.thumbnail_url) return product.thumbnail_url;
+    if (product.images && product.images.length > 0) {
+      const first = product.images[0];
+      if (typeof first === 'string') return first;
+      if (first && typeof first === 'object' && first.image_url) return first.image_url;
+    }
+    return '';
+  };
+
+  // Filter products based on active tab, status filter, and search query
+  const filteredProducts = products.filter(product => {
+    // 1. Filter by visibility_type (0 = Public, 1 = Group)
+    const visibility = product.visibility_type ?? 0;
+    if (visibility !== activeTab) return false;
+
+    // 2. Filter by status
+    const statusVal = product.status_id ?? product.statusId ?? 1;
+    if (statusFilter !== 'all' && statusVal.toString() !== statusFilter) return false;
+
+    // 3. Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const nameMatch = product.name.toLowerCase().includes(query);
+      const descMatch = product.description.toLowerCase().includes(query);
+      const authorMatch = product.user?.nickname?.toLowerCase().includes(query) || false;
+      const groupMatch = product.group?.name?.toLowerCase().includes(query) || false;
+      return nameMatch || descMatch || authorMatch || groupMatch;
+    }
+
+    return true;
+  });
+
   if (loading) {
     return (
       <div className="h-[60vh] flex items-center justify-center flex-col space-y-4">
         <div className="w-12 h-12 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin"></div>
-        <p className="text-slate-400 text-sm">Đang tải danh sách sản phẩm...</p>
+        <p className="text-slate-400 text-sm font-medium">Đang tải danh sách sản phẩm...</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      <div>
-        <h2 className="text-xl font-bold text-white">Kiểm duyệt sản phẩm</h2>
-        <p className="text-slate-400 text-xs mt-1">Duyệt hoặc gỡ bỏ các bài đăng thanh lý của sinh viên trên sàn.</p>
+      {/* Page Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl">
+        <div className="space-y-1">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <ShoppingBag className="text-indigo-400 w-5 h-5" />
+            Kiểm duyệt tin đăng sản phẩm
+          </h2>
+          <p className="text-slate-400 text-sm">
+            Phê duyệt hoặc gỡ bỏ tin thanh lý của sinh viên trên toàn trường hoặc trong nhóm.
+          </p>
+        </div>
+
+        {/* Search */}
+        <div className="relative max-w-xs w-full">
+          <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-450" />
+          <input
+            type="text"
+            placeholder="Tìm theo tiêu đề, người bán..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-indigo-500 transition-colors"
+          />
+        </div>
       </div>
 
       {error && (
@@ -116,76 +172,142 @@ const Products: React.FC = () => {
         </div>
       )}
 
-      {products.length === 0 ? (
+      {/* Main Tabs and Status Filters row */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+        {/* Visibility Tabs */}
+        <div className="flex bg-slate-900 p-1.5 rounded-xl border border-slate-800/60 max-w-fit">
+          <button
+            onClick={() => setActiveTab(0)}
+            className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              activeTab === 0 
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/10' 
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Tin Toàn Trường
+          </button>
+          <button
+            onClick={() => setActiveTab(1)}
+            className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              activeTab === 1 
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/10' 
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Tin Trong Nhóm
+          </button>
+        </div>
+
+        {/* Status Filters */}
+        <div className="flex items-center space-x-2">
+          {['all', '1', '2', '3'].map((status) => {
+            const label = status === 'all' ? 'Tất cả' : status === '1' ? 'Chờ duyệt' : status === '2' ? 'Đã duyệt' : 'Bị ẩn/Từ chối';
+            const isActive = statusFilter === status;
+            return (
+              <button
+                key={status}
+                onClick={() => setStatusFilter(status)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400'
+                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-250'
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Grid List */}
+      {filteredProducts.length === 0 ? (
         <div className="glass-card rounded-2xl p-12 border border-slate-800/80 text-center text-slate-500 space-y-3">
           <div className="w-14 h-14 rounded-2xl bg-slate-900 mx-auto flex items-center justify-center text-slate-400 border border-slate-800">
             <ShoppingBag size={28} />
           </div>
-          <h3 className="text-base font-bold text-slate-300">Không có sản phẩm nào</h3>
-          <p className="text-xs">Chưa có bài viết thanh lý sản phẩm nào được đăng.</p>
+          <h3 className="text-base font-bold text-slate-350">Không có sản phẩm nào</h3>
+          <p className="text-xs">Chưa có bài đăng nào khớp với bộ lọc hiện tại.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {products.map((product) => {
-            const img = product.images && product.images.length > 0 ? product.images[0] : '';
+          {filteredProducts.map((product) => {
+            const img = getProductImage(product);
+            const statusVal = product.status_id ?? product.statusId ?? 1;
+            const creationDate = product.created_at ?? product.createdAt;
+
             return (
               <div 
                 key={product.id}
-                className="glass-card rounded-2xl border border-slate-800 flex flex-col justify-between overflow-hidden hover:border-slate-700 transition-all duration-300"
+                className="glass-card rounded-2xl border border-slate-800 flex flex-col justify-between overflow-hidden hover:border-slate-750 transition-all duration-300 group shadow-md hover:shadow-indigo-500/5"
               >
-                {/* Product Image Cover */}
+                {/* Image Cover */}
                 <div className="h-44 bg-slate-950 flex items-center justify-center border-b border-slate-800 overflow-hidden relative">
                   {img ? (
-                    <img src={img} alt={product.name} className="w-full h-full object-cover" />
+                    <img src={img} alt={product.name} className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500" />
                   ) : (
-                    <ShoppingBag size={32} className="text-slate-700" />
+                    <ShoppingBag size={32} className="text-slate-750" />
                   )}
-                  {/* Status Overlay */}
-                  <div className="absolute top-3 right-3">
-                    {product.statusId === 2 ? (
-                      <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded text-[10px] font-bold">
+
+                  {/* Status Badges */}
+                  <div className="absolute top-3 right-3 flex flex-col gap-1.5 items-end">
+                    {statusVal === 2 ? (
+                      <span className="bg-emerald-500/10 text-emerald-450 border border-emerald-500/20 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
                         Đang hiển thị
                       </span>
-                    ) : product.statusId === 1 ? (
-                      <span className="bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded text-[10px] font-bold flex items-center">
+                    ) : statusVal === 1 ? (
+                      <span className="bg-amber-500/10 text-amber-450 border border-amber-500/20 px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center">
                         <Clock size={10} className="mr-1" /> Chờ duyệt
                       </span>
                     ) : (
-                      <span className="bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded text-[10px] font-bold">
+                      <span className="bg-rose-500/10 text-rose-450 border border-rose-500/20 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
                         Bị ẩn/Từ chối
+                      </span>
+                    )}
+
+                    {/* Group Badge */}
+                    {product.group && (
+                      <span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1">
+                        <Layers size={10} /> {product.group.name}
                       </span>
                     )}
                   </div>
                 </div>
 
+                {/* Content */}
                 <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                  <div className="space-y-1">
-                    <span className="text-[10px] text-indigo-400 font-bold bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded">
-                      ID #{product.id}
-                    </span>
-                    <h4 className="text-sm font-bold text-slate-200 line-clamp-2 pt-1">{product.name}</h4>
-                    <p className="text-xs text-indigo-400 font-bold">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-indigo-400 font-bold bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded">
+                        ID #{product.id}
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-bold text-slate-200 line-clamp-2 pt-1 group-hover:text-indigo-400 transition-colors">
+                      {product.name}
+                    </h4>
+                    <p className="text-xs text-indigo-455 font-bold">
                       {product.price === 0 ? 'Miễn phí / Trao đổi' : `${product.price.toLocaleString('vi-VN')} đ`}
                     </p>
-                    <p className="text-xs text-slate-400 line-clamp-2 pt-2 leading-relaxed">{product.description}</p>
+                    <p className="text-xs text-slate-400 line-clamp-2 pt-1 leading-relaxed">{product.description}</p>
                   </div>
 
                   <div className="border-t border-slate-800/60 pt-3 text-[11px] text-slate-500 flex justify-between items-center">
-                    <span>Đăng bởi: <strong className="text-slate-300 font-semibold">{product.user?.nickname || 'Ẩn danh'}</strong></span>
-                    <span>{new Date(product.createdAt).toLocaleDateString('vi-VN')}</span>
+                    <span>Đăng bởi: <strong className="text-slate-350 font-semibold">{product.user?.fullName || product.user?.nickname || 'Ẩn danh'}</strong></span>
+                    <span>{creationDate ? new Date(creationDate).toLocaleDateString('vi-VN') : ''}</span>
                   </div>
                 </div>
 
-                {/* Moderation Actions */}
-                <div className="px-5 py-4 bg-slate-900/50 border-t border-slate-800/40 flex gap-2">
+                {/* Actions */}
+                <div className="px-5 py-3.5 bg-slate-900/40 border-t border-slate-800/60 flex gap-2">
                   <button
                     onClick={() => setSelectedProduct(product)}
                     className="flex-1 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors text-xs font-semibold flex items-center justify-center space-x-1 cursor-pointer"
                   >
                     <Eye size={12} />
-                    <span>Xem tin</span>
+                    <span>Xem chi tiết</span>
                   </button>
-                  {product.statusId === 1 && (
+
+                  {statusVal === 1 && (
                     <>
                       <button
                         onClick={() => handleUpdateStatus(product.id, 3)}
@@ -196,25 +318,25 @@ const Products: React.FC = () => {
                       </button>
                       <button
                         onClick={() => handleUpdateStatus(product.id, 2)}
-                        className="p-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-white transition-all border border-emerald-500/20 cursor-pointer"
+                        className="p-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 text-emerald-450 hover:text-white transition-all border border-emerald-500/20 cursor-pointer"
                         title="Phê duyệt"
                       >
                         <Check size={14} />
                       </button>
                     </>
                   )}
-                  {product.statusId === 2 && (
+                  {statusVal === 2 && (
                     <button
                       onClick={() => handleUpdateStatus(product.id, 3)}
-                      className="px-3 py-2 rounded-lg bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white border border-rose-500/20 transition-all text-xs font-semibold cursor-pointer"
+                      className="px-3 py-2 rounded-lg bg-rose-500/10 hover:bg-rose-500 text-rose-455 hover:text-white border border-rose-500/20 transition-all text-xs font-semibold cursor-pointer"
                     >
                       Gỡ bài đăng
                     </button>
                   )}
-                  {product.statusId === 3 && (
+                  {statusVal === 3 && (
                     <button
                       onClick={() => handleUpdateStatus(product.id, 2)}
-                      className="px-3 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-white border border-emerald-500/20 transition-all text-xs font-semibold cursor-pointer"
+                      className="px-3 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 text-emerald-455 hover:text-white border border-emerald-500/20 transition-all text-xs font-semibold cursor-pointer"
                     >
                       Duyệt lại bài
                     </button>
@@ -234,23 +356,23 @@ const Products: React.FC = () => {
               <h3 className="font-bold text-white text-base">Chi tiết bài viết thanh lý</h3>
               <button 
                 onClick={() => setSelectedProduct(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+                className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-850 hover:text-white transition-colors"
               >
                 <X size={20} />
               </button>
             </div>
 
             <div className="p-6 overflow-y-auto flex-1 space-y-6">
-              {/* Image slideshow (simplified) */}
+              {/* Image slideshow */}
               <div className="h-64 bg-slate-950 border border-slate-800 rounded-xl overflow-hidden flex items-center justify-center relative">
-                {selectedProduct.images && selectedProduct.images.length > 0 ? (
-                  <img src={selectedProduct.images[0]} alt="Ảnh sản phẩm" className="w-full h-full object-contain" />
+                {getProductImage(selectedProduct) ? (
+                  <img src={getProductImage(selectedProduct)} alt="Ảnh sản phẩm" className="w-full h-full object-contain" />
                 ) : (
                   <ShoppingBag size={48} className="text-slate-800" />
                 )}
               </div>
 
-              {/* Title, price, description */}
+              {/* Info */}
               <div className="space-y-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -269,14 +391,27 @@ const Products: React.FC = () => {
                   <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">{selectedProduct.description}</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 text-xs bg-slate-900 p-3 rounded-lg border border-slate-800/40">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs bg-slate-900 p-3 rounded-lg border border-slate-800/40">
                   <div>
                     <span className="text-slate-500 block">Đăng bởi</span>
-                    <span className="text-slate-300 font-semibold">{selectedProduct.user?.fullName || selectedProduct.user?.nickname || 'N/A'}</span>
+                    <span className="text-slate-300 font-semibold">{selectedProduct.user?.fullName || selectedProduct.user?.nickname || 'Ẩn danh'}</span>
                   </div>
                   <div>
                     <span className="text-slate-500 block">Thời gian đăng</span>
-                    <span className="text-slate-300 font-semibold">{new Date(selectedProduct.createdAt).toLocaleString('vi-VN')}</span>
+                    <span className="text-slate-300 font-semibold">{new Date(selectedProduct.created_at ?? selectedProduct.createdAt).toLocaleString('vi-VN')}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block">Nơi hiển thị</span>
+                    <span className="text-slate-300 font-semibold flex items-center gap-1">
+                      {selectedProduct.visibility_type === 1 ? (
+                        <>
+                          <Layers size={11} className="text-indigo-400" />
+                          <span>Trong nhóm ({selectedProduct.group?.name || 'Chưa rõ'})</span>
+                        </>
+                      ) : (
+                        <span>Toàn trường</span>
+                      )}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -285,11 +420,12 @@ const Products: React.FC = () => {
             <div className="p-4 bg-slate-950 border-t border-slate-800/80 flex justify-end gap-3">
               <button 
                 onClick={() => setSelectedProduct(null)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-350 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
               >
                 Đóng
               </button>
-              {selectedProduct.statusId === 1 && (
+              
+              {selectedProduct.status_id === 1 && (
                 <>
                   <button
                     onClick={() => { handleUpdateStatus(selectedProduct.id, 3); }}

@@ -6,12 +6,21 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not, IsNull } from 'typeorm';
 import { User } from '../entities/user.entity';
+import { Group } from '../entities/group.entity';
+import { GroupMember } from '../entities/group-member.entity';
+import { Product } from '../entities/product.entity';
 
 @Injectable()
 export class AdminService {
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    @InjectRepository(Group)
+    private readonly groupRepo: Repository<Group>,
+    @InjectRepository(GroupMember)
+    private readonly groupMemberRepo: Repository<GroupMember>,
+    @InjectRepository(Product)
+    private readonly productRepo: Repository<Product>,
   ) {}
 
   // Xóa người dùng vĩnh viễn
@@ -127,5 +136,54 @@ export class AdminService {
     // Xoá pending
     user.cccd_pending_data = null;
     return this.userRepo.save(user);
+  }
+
+  // Lấy toàn bộ danh sách nhóm cho Admin
+  async getAllGroups() {
+    const groups = await this.groupRepo.find({
+      relations: ['owner'],
+      order: { created_at: 'DESC' },
+    });
+
+    return Promise.all(
+      groups.map(async (group) => {
+        const memberCount = await this.groupMemberRepo.count({
+          where: { group_id: group.id, pending: 3 },
+        });
+        const productCount = await this.productRepo.count({
+          where: { group_id: group.id },
+        });
+        return {
+          id: group.id,
+          name: group.name,
+          description: group.description,
+          thumbnail_url: group.thumbnail_url,
+          isPublic: group.isPublic,
+          mustApprovePosts: group.mustApprovePosts,
+          created_at: group.created_at,
+          memberCount,
+          productCount,
+          owner: group.owner ? {
+            id: group.owner.id,
+            nickname: group.owner.nickname,
+            fullName: group.owner.fullName,
+            email: group.owner.email,
+          } : null,
+        };
+      }),
+    );
+  }
+
+  // Admin xóa nhóm vĩnh viễn
+  async deleteGroup(id: number) {
+    const group = await this.groupRepo.findOne({ where: { id } });
+    if (!group) throw new NotFoundException('Nhóm không tồn tại');
+
+    // Xóa các dữ liệu liên quan
+    await this.groupMemberRepo.delete({ group_id: id });
+    await this.productRepo.delete({ group_id: id });
+
+    // Xóa nhóm
+    return this.groupRepo.delete(id);
   }
 }
