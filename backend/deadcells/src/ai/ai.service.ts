@@ -6,7 +6,7 @@ const FormData = require('form-data');
 
 @Injectable()
 export class AiService {
-  private readonly aiServiceUrl = 'http://127.0.0.1:8000/api/ai';
+  private readonly aiServiceUrl = process.env.AI_SERVICE_URL || 'http://127.0.0.1:8000/api/ai';
 
   constructor(private readonly httpService: HttpService) {}
 
