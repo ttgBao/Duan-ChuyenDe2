@@ -29,6 +29,7 @@ import { useNotification } from "../Notification/NotificationContext";
 import React from "react";
 import InterestRenewalDialog from "../../components/InterestRenewalDialog";
 import SuggestionBottomSheet from "../../components/SuggestionBottomSheet";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, "Home">;
@@ -496,11 +497,11 @@ export default function HomeScreen({ navigation, route }: Props) {
   };
 
   return (
-    <View className="flex-1 bg-[#faf9f6] pt-1">
-      <StatusBar barStyle="dark-content" backgroundColor="#faf9f6" hidden={false} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#f8fafc" }} edges={["top", "left", "right"]}>
+      <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" hidden={false} />
 
       {/* Header */}
-      <View className="flex-row items-center px-4 py-3 bg-[#faf9f6] border-b border-gray-100 z-10">
+      <View className="flex-row items-center px-4 py-3 bg-[#f8fafc] border-b border-gray-100 z-10">
         {/* Menu Hamburger */}
         <TouchableOpacity
           className="w-10 h-10 rounded-full bg-white border border-gray-200/80 items-center justify-center shadow-sm active:scale-95 flex"
@@ -551,15 +552,15 @@ export default function HomeScreen({ navigation, route }: Props) {
         }
       >
         {/* Banner with Double-Bezel Nested Architecture */}
-        <View className="p-4 bg-[#faf9f6]">
+        <View className="p-4 bg-[#f8fafc]">
           <View className="p-1 rounded-[24px] bg-black/[0.02] border border-black/[0.04]">
             <View className="bg-white rounded-[20px] p-5 overflow-hidden relative shadow-sm border border-gray-100 flex-row items-center justify-between">
               {/* Subtle background glow */}
-              <View className="absolute -top-12 -right-12 w-40 h-40 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
+              <View className="absolute -top-12 -right-12 w-40 h-40 bg-blue-500/5 rounded-full blur-2xl pointer-events-none" />
               
               <View className="flex-1 pr-3">
-                <View className="rounded-full px-2.5 py-0.5 bg-indigo-500/10 border border-indigo-500/20 self-start mb-2">
-                  <Text className="text-indigo-600 text-[9px] uppercase tracking-wider font-extrabold">TDC Market</Text>
+                <View className="rounded-full px-2.5 py-0.5 bg-blue-500/10 border border-blue-500/20 self-start mb-2">
+                  <Text className="text-blue-600 text-[9px] uppercase tracking-wider font-extrabold">TDC Market</Text>
                 </View>
                 <Text className="text-lg font-extrabold text-gray-800 leading-tight">
                   Mua bán & Trao đổi đồ cũ sinh viên
@@ -594,7 +595,7 @@ export default function HomeScreen({ navigation, route }: Props) {
           contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8 }}
           renderItem={({ item }) => (
             <TouchableOpacity
-              className="items-center mr-4 bg-white rounded-2xl p-3 border border-gray-100 shadow-sm w-24 hover:border-indigo-500/30 flex"
+              className="items-center mr-4 bg-white rounded-2xl p-3 border border-gray-100 shadow-sm w-24 hover:border-blue-500/30 flex"
               onPress={() => {
                 navigation.navigate("CategoryIndex", {
                   categoryId: item.id.toString(),
@@ -602,7 +603,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                 });
               }}
             >
-              <View className="w-12 h-12 rounded-full bg-indigo-500/5 items-center justify-center mb-2 flex">
+              <View className="w-12 h-12 rounded-full bg-blue-500/5 items-center justify-center mb-2 flex">
                 <Image
                   source={{ uri: item.image }}
                   className="w-6 h-6"
@@ -634,7 +635,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                 <TouchableOpacity
                   className={`px-4 py-2 mr-3 rounded-full border transition-all ${
                     isSelected
-                      ? "bg-indigo-600 border-indigo-600 shadow-sm"
+                      ? "bg-blue-600 border-blue-600 shadow-sm"
                       : "bg-white border-gray-200/80"
                   }`}
                   onPress={() => {
@@ -782,6 +783,6 @@ export default function HomeScreen({ navigation, route }: Props) {
         }}
         title={suggestTitle}
       />
-    </View>
+    </SafeAreaView>
   );
 }
