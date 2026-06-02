@@ -6,9 +6,16 @@ const FormData = require('form-data');
 
 @Injectable()
 export class AiService {
-  private readonly aiServiceUrl = process.env.AI_SERVICE_URL || 'http://127.0.0.1:8000/api/ai';
+  private readonly aiServiceUrl: string;
 
-  constructor(private readonly httpService: HttpService) {}
+  constructor(private readonly httpService: HttpService) {
+    let url = process.env.AI_SERVICE_URL || 'http://127.0.0.1:8000/api/ai';
+    url = url.trim().replace(/\/$/, '');
+    if (!url.endsWith('/api/ai')) {
+      url = `${url}/api/ai`;
+    }
+    this.aiServiceUrl = url;
+  }
 
   async generateEmbedding(text: string) {
     try {
