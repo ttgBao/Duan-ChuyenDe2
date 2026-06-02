@@ -15,15 +15,15 @@ import {
   ActionSheetIOS,
   TextInput,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../types";
 import { StatusBar } from "expo-status-bar";
 import { FontAwesome, MaterialIcons, Ionicons } from "@expo/vector-icons";
-import { TabView, SceneMap, TabBar } from "react-native-tab-view";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { path } from "../../config";
-import { useFocusEffect, useRoute } from "@react-navigation/native";
+import { useFocusEffect } from "@react-navigation/native";
 import * as Clipboard from "expo-clipboard";
 
 const DEFAULT_AVATAR = require("../../assets/default.png");
@@ -41,17 +41,18 @@ interface User {
 
 // Star Rating Component
 const StarRating = ({ rating, editable = false, onChange }: any) => (
-  <View className="flex-row gap-1">
+  <View className="flex-row gap-0.5">
     {[1, 2, 3, 4, 5].map((star) => (
       <TouchableOpacity
         key={star}
         onPress={() => editable && onChange?.(star)}
         disabled={!editable}
+        className="p-0.5"
       >
-        <MaterialIcons
-          name={star <= rating ? "star" : "star-border"}
-          size={16}
-          color="#facc15"
+        <Ionicons
+          name={star <= rating ? "star" : "star-outline"}
+          size={14}
+          color="#eab308"
         />
       </TouchableOpacity>
     ))}
@@ -68,22 +69,24 @@ const RatingCard = ({ rating }: any) => {
   };
 
   return (
-    <View className="bg-white p-2 rounded-xl mb-2 border border-gray-100 shadow-sm">
-      <View className="flex-row items-center justify-between mb-1">
+    <View className="bg-white p-4 rounded-2xl mb-3 border border-slate-100 shadow-xs">
+      <View className="flex-row items-center justify-between mb-2">
         <View className="flex-row items-center">
-          <Image
-            source={
-              rating.reviewer.avatar
-                ? { uri: rating.reviewer.avatar }
-                : DEFAULT_AVATAR
-            }
-            className="w-8 h-8 rounded-full mr-2"
-          />
+          <View className="p-0.5 rounded-full bg-slate-50 border border-slate-100 mr-2.5">
+            <Image
+              source={
+                rating.reviewer.avatar
+                  ? { uri: rating.reviewer.avatar }
+                  : DEFAULT_AVATAR
+              }
+              className="w-9 h-9 rounded-full"
+            />
+          </View>
           <View>
-            <Text className="font-semibold text-xxs">
+            <Text className="font-semibold text-xs text-slate-800">
               {rating.reviewer?.name || "Người dùng"}
             </Text>
-            <Text className="text-xs text-gray-500">
+            <Text className="text-[10px] text-slate-400 mt-0.5">
               {timeAgo(rating.createdAt)}
             </Text>
           </View>
@@ -91,7 +94,9 @@ const RatingCard = ({ rating }: any) => {
         <StarRating rating={rating.stars} editable={false} />
       </View>
       {rating.content && (
-        <Text className="text-gray-700 text-xs mt-1">{rating.content}</Text>
+        <Text className="text-slate-600 text-xs leading-relaxed pl-1">
+          {rating.content}
+        </Text>
       )}
     </View>
   );
@@ -143,47 +148,49 @@ const RenderProductItem = ({ item, navigation }: any) => {
 
   return (
     <TouchableOpacity
-      className="flex-row items-center bg-white rounded-xl p-3 mb-3 shadow-sm border border-gray-100 mx-4"
+      className="flex-row items-center bg-white rounded-2xl p-3 mb-3 shadow-xs border border-slate-100 mx-4"
       onPress={() => navigation.navigate("ProductDetail", { product: item })}
     >
-      <Image
-        source={
-          finalImage ? { uri: finalImage } : require("../../assets/default.png")
-        }
-        className="w-20 h-20 rounded-lg bg-gray-200"
-        resizeMode="cover"
-      />
-      <View className="flex-1 ml-3 justify-center">
-        {/* 1. Tên sản phẩm */}
+      <View className="p-0.5 rounded-xl bg-slate-50 border border-slate-100">
+        <Image
+          source={
+            finalImage ? { uri: finalImage } : require("../../assets/default.png")
+          }
+          className="w-20 h-20 rounded-lg bg-slate-100"
+          resizeMode="cover"
+        />
+      </View>
+      <View className="flex-1 ml-3.5 justify-center">
+        {/* Tên sản phẩm */}
         <Text
-          className="text-base font-semibold text-gray-800 mb-1"
+          className="text-sm font-bold text-slate-800 mb-1.5"
           numberOfLines={1}
         >
           {item.name}
         </Text>
 
-        {/* 2. Tên nhóm / Toàn trường */}
+        {/* Tên nhóm / Toàn trường */}
         <View className="flex-row items-center mb-1">
-          <MaterialIcons
-            name={item.group ? "group" : "public"}
-            size={12}
-            color="#6b7280"
+          <Ionicons
+            name={item.group ? "people-outline" : "globe-outline"}
+            size={13}
+            color="#94a3b8"
           />
-          <Text className="text-xs text-gray-500 ml-1">
+          <Text className="text-xs text-slate-500 ml-1">
             {item.group && item.group.name ? item.group.name : "Toàn trường"}
           </Text>
         </View>
 
-        {/* 3. Tag danh mục */}
-        <View className="flex-row items-center mb-1">
-          <MaterialIcons name="label" size={12} color="#6b7280" />
-          <Text className="text-xs text-gray-500 ml-1" numberOfLines={1}>
+        {/* Tag danh mục */}
+        <View className="flex-row items-center mb-2.5">
+          <Ionicons name="pricetag-outline" size={13} color="#94a3b8" />
+          <Text className="text-xs text-slate-500 ml-1" numberOfLines={1}>
             {item.tag || item.category?.name || "Khác"}
           </Text>
         </View>
 
-        {/* 4. Giá tiền */}
-        <Text className="text-sm font-medium text-indigo-600">
+        {/* Giá tiền */}
+        <Text className="text-sm font-bold text-blue-600">
           {displayPrice}
         </Text>
       </View>
@@ -216,67 +223,9 @@ export default function UserInforScreen({ navigation, route }: any) {
   const [reportDescription, setReportDescription] = useState("");
   const [isSendingReport, setIsSendingReport] = useState(false);
 
-  const [routes, setRoutes] = useState([
-    { key: "displaying", title: "Đang hiển thị (0)" },
-    { key: "sold", title: "Đã bán (0)" },
-  ]);
-
-  const renderScene = ({ route }: any) => {
-    switch (route.key) {
-      case "displaying":
-        return (
-          <ScrollView
-            className="flex-1 bg-gray-50 pt-3"
-            contentContainerStyle={{ paddingBottom: 20 }}
-          >
-            {displayingProducts.length > 0 ? (
-              displayingProducts.map((item) => (
-                <RenderProductItem
-                  key={item.id}
-                  item={item}
-                  navigation={navigation}
-                />
-              ))
-            ) : (
-              <View className="items-center mt-10">
-                <Text className="text-gray-500">
-                  Chưa có sản phẩm nào đang hiển thị
-                </Text>
-              </View>
-            )}
-          </ScrollView>
-        );
-
-      case "sold":
-        return (
-          <ScrollView
-            className="flex-1 bg-gray-50 pt-3"
-            contentContainerStyle={{ paddingBottom: 20 }}
-          >
-            {soldProducts.length > 0 ? (
-              soldProducts.map((item) => (
-                <RenderProductItem
-                  key={item.id}
-                  item={item}
-                  navigation={navigation}
-                />
-              ))
-            ) : (
-              <View className="items-center mt-10">
-                <Text className="text-gray-500">
-                  Chưa có sản phẩm nào đã bán
-                </Text>
-              </View>
-            )}
-          </ScrollView>
-        );
-      default:
-        return null;
-    }
-  };
+  const [activeTab, setActiveTab] = useState<"displaying" | "sold">("displaying");
 
   // States
-  const [index, setIndex] = useState(0);
   const [showMore, setShowMore] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [avatar, setAvatar] = useState<string | null>(null);
@@ -404,10 +353,6 @@ export default function UserInforScreen({ navigation, route }: any) {
 
       setDisplayingProducts(active);
       setSoldProducts(sold);
-      setRoutes([
-        { key: "displaying", title: `Đang hiển thị (${active.length})` },
-        { key: "sold", title: `Đã bán (${sold.length})` },
-      ]);
     } catch (err: any) {
       console.log("Lỗi khi lấy dữ liệu:", err.message);
       Alert.alert("Lỗi", "Không thể tải thông tin người dùng.");
@@ -718,355 +663,493 @@ export default function UserInforScreen({ navigation, route }: any) {
   };
 
   return (
-    <ScrollView className="flex-1 bg-gray-50">
-      <StatusBar style="auto" />
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#f8fafc" }} edges={["top", "left", "right"]}>
+      <StatusBar style="dark" />
 
-      {/* Header */}
-      <View className="flex flex-row gap-6 pl-6 items-center mt-10">
-        <FontAwesome
-          onPress={() => navigation.goBack()}
-          name="arrow-left"
-          size={20}
-          color="#000"
-        />
-        <Text className="text-xl font-semibold">
-          {user?.nickname || "Đang tải..."}
-        </Text>
+      {/* Header Bar */}
+      <View className="flex flex-row items-center px-4 py-3 bg-white border-b border-slate-100 justify-between">
+        <View className="flex-row items-center gap-3">
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            className="p-2 rounded-full active:bg-slate-100"
+          >
+            <Ionicons name="arrow-back" size={22} color="#1e293b" />
+          </TouchableOpacity>
+          <Text className="text-base font-bold text-slate-800">
+            {user?.nickname || "Đang tải..."}
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          onPress={() => setMenuVisible(true)}
+          className="p-2 rounded-full active:bg-slate-100"
+        >
+          <Ionicons name="ellipsis-vertical" size={20} color="#1e293b" />
+        </TouchableOpacity>
       </View>
 
-      {/* Ảnh bìa */}
-      <View className="w-full h-[100px] relative mt-2">
-        <Image
-          key={coverImage}
-          className="w-full h-full object-cover"
-          source={
-            coverImage
-              ? {
-                  uri: coverImage.startsWith("http")
-                    ? coverImage
-                    : `${path}/${coverImage.replace(/\\/g, "/")}`,
-                }
-              : DEFAULT_COVER
-          }
-          style={{ backgroundColor: "#d1d5db" }}
-        />
-        {/* Nút upload/chỉnh sửa ảnh bìa - CHỈ HIỂN THỊ TRÊN HỒ SƠ CỦA MÌNH */}
-
-        {isOwnProfile && (
-          <TouchableOpacity
-            onPress={() => handleImageOptions("coverImage")}
-            disabled={isUploading}
-            className="absolute right-2 bottom-2 bg-black/50 p-2 rounded-full"
-          >
-            <MaterialIcons name="camera-alt" size={16} color="white" />
-          </TouchableOpacity>
-        )}
-
-        {/* Avatar */}
-        <View className="w-[60px] h-[60px] absolute -bottom-6 left-5 bg-white p-1 rounded-full">
+      <ScrollView className="flex-1 bg-slate-50/50" contentContainerStyle={{ paddingBottom: 40 }}>
+        {/* Cover Photo & Avatar Container */}
+        <View className="w-full h-[150px] relative bg-slate-200">
           <Image
-            key={avatar}
-            className="w-full h-full object-cover rounded-full"
+            key={coverImage}
+            className="w-full h-full object-cover"
             source={
-              avatar
+              coverImage
                 ? {
-                    uri: avatar.startsWith("http")
-                      ? avatar
-                      : `${path}/${avatar.replace(/\\/g, "/")}`,
+                    uri: coverImage.startsWith("http")
+                      ? coverImage
+                      : `${path}/${coverImage.replace(/\\/g, "/")}`,
                   }
-                : DEFAULT_AVATAR
+                : DEFAULT_COVER
             }
-            style={{ backgroundColor: "#d1d5db" }}
+            style={{ backgroundColor: "#e2e8f0" }}
           />
-          {/* Nút upload/chỉnh sửa avatar - CHỈ HIỂN THỊ TRÊN HỒ SƠ CỦA MÌNH */}
+
           {isOwnProfile && (
             <TouchableOpacity
-              onPress={() => handleImageOptions("image")}
+              onPress={() => handleImageOptions("coverImage")}
               disabled={isUploading}
-              className="absolute right-0 bottom-0 bg-white rounded-full p-1"
+              className="absolute right-4 bottom-4 bg-black/60 p-2 rounded-full border border-white/15"
             >
-              <MaterialIcons name="camera-alt" size={10} color="black" />
+              <Ionicons name="camera" size={18} color="white" />
             </TouchableOpacity>
           )}
-        </View>
 
-        {/* Loading Indicator */}
-        {isUploading && (
-          <View className="absolute top-0 left-0 right-0 bottom-0 bg-black/30 flex items-center justify-center">
-            <ActivityIndicator size="large" color="#FFFFFF" />
+          {/* Double-Bezel Avatar (Matching UserScreen) */}
+          <View className="absolute -bottom-10 left-6 p-1 rounded-full bg-slate-100/90 border border-slate-200/80 shadow-md">
+            <View className="w-20 h-20 rounded-full bg-white border-2 border-white overflow-hidden justify-center items-center relative">
+              <Image
+                key={avatar}
+                className="w-full h-full rounded-full"
+                source={
+                  avatar
+                    ? {
+                        uri: avatar.startsWith("http")
+                          ? avatar
+                          : `${path}/${avatar.replace(/\\/g, "/")}`,
+                      }
+                    : DEFAULT_AVATAR
+                }
+                style={{ backgroundColor: "#e2e8f0" }}
+              />
+            </View>
+            {isOwnProfile && (
+              <TouchableOpacity
+                onPress={() => handleImageOptions("image")}
+                disabled={isUploading}
+                className="absolute right-0 bottom-0 bg-blue-600 rounded-full p-1.5 border border-white shadow-sm active:bg-blue-700"
+              >
+                <Ionicons name="camera" size={12} color="white" />
+              </TouchableOpacity>
+            )}
           </View>
-        )}
-      </View>
 
-      {/* Action Buttons */}
-      {/* Action Buttons */}
-      <View className="flex flex-row justify-end gap-3 mt-8 mr-4 items-center">
-        {/* Nút "Theo dõi" - CHỈ HIỂN THỊ TRÊN HỒ SƠ CỦA NGƯỜI KHÁC */}
-        {!isOwnProfile && (
-          <TouchableOpacity
-            onPress={async () => {
-              // ... (Giữ nguyên code xử lý theo dõi cũ của bạn ở đây)
-              if (!user) return;
-              const token = await AsyncStorage.getItem("token");
-              if (!token || !currentUserId) {
-                return Alert.alert("Lỗi", "Vui lòng đăng nhập để theo dõi.");
-              }
-              try {
-                const res = await axios.post(
-                  `${path}/follow/toggle`,
-                  {
-                    followerId: Number(currentUserId),
-                    followingId: Number(user.id),
-                  },
-                  { headers: { Authorization: `Bearer ${token}` } }
-                );
-                const { isFollowing, followerCount } = res.data;
-                setUser((prev: any) => ({
-                  ...prev,
-                  isFollowing: isFollowing,
-                  followerCount: followerCount,
-                }));
-              } catch (err: any) {
-                console.log("Lỗi Follow:", err);
-                Alert.alert("Lỗi", "Không thể thực hiện thao tác.");
-              }
-            }}
-            className={`text-xs p-1.5 rounded-md px-3 flex-row items-center gap-1 ${
-              user?.isFollowing ? "bg-gray-400" : "bg-yellow-400"
-            }`}
-          >
-            {/* Thêm icon cho đẹp (tùy chọn) */}
-            <MaterialIcons
-              name={user?.isFollowing ? "check" : "person-add"}
-              size={16}
-              color="white"
-            />
-            <Text className="text-white font-medium text-xs">
-              {user?.isFollowing ? "Đang theo dõi" : "Theo dõi"}
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Nút Menu 3 chấm (dành cho cả hai) */}
-        <TouchableOpacity onPress={() => setMenuVisible(true)} className="ml-1">
-          <MaterialIcons name="more-vert" size={24} color="black" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Tên và Đánh giá */}
-      <View className="pl-3 mt-[-10px] flex flex-col gap-2">
-        <Text className="font-bold text-lg">{user?.nickname || "..."}</Text>
-        <View className="flex-row items-center">
-          {averageRating !== null ? (
-            <>
-              <StarRating rating={Math.round(averageRating)} />
-              <Text className="text-sm text-gray-600 ml-2">
-                {averageRating.toFixed(1)} ({ratingCount} đánh giá)
-              </Text>
-            </>
-          ) : (
-            <Text className="text-sm text-gray-600">Chưa có đánh giá</Text>
+          {isUploading && (
+            <View className="absolute inset-0 bg-black/35 flex items-center justify-center">
+              <ActivityIndicator size="large" color="#FFFFFF" />
+            </View>
           )}
         </View>
-        <View className="flex flex-row gap-3">
-          <Text className="border-r pr-2 text-xs text-gray-700">
-            Người theo dõi: {user?.followerCount || 0}
-          </Text>
-          <Text className="text-xs text-gray-700">
-            Đang theo dõi: {user?.followingCount || 0}
-          </Text>
-        </View>
-      </View>
 
-      {/* Chi tiết người dùng */}
-      <View className="pl-3 pr-4 flex flex-col mt-6 gap-3 mb-4">
-        {/* PHẦN HIỂN THỊ CỐ ĐỊNH */}
-        <View className="flex flex-row gap-2 items-center">
-          <MaterialIcons name="access-time" size={16} color="gray" />
-          <Text className="text-xs text-gray-600">
-            Đã tham gia: {timeSince(user?.createdAt)}
-          </Text>
-        </View>
+        {/* Profile Header Details Section */}
+        <View className="px-6 pt-12 pb-5 bg-white border-b border-slate-100 flex flex-col">
+          <View className="flex-row justify-between items-start">
+            <View className="flex-1 mr-4">
+              <View className="flex-row items-center gap-1.5 flex-wrap">
+                <Text className="font-extrabold text-xl text-slate-900">
+                  {user?.nickname || "..."}
+                </Text>
+                {user?.is_cccd_verified && (
+                  <Ionicons name="checkmark-circle" size={18} color="#2563eb" />
+                )}
+              </View>
 
-        {/* Xác thực (CHỈ HIỂN THỊ CHO CHÍNH MÌNH) */}
-        {isOwnProfile && (
-          <View className="flex flex-row gap-2 items-center">
-            <MaterialIcons name="verified-user" size={16} color="gray" />
-            <Text className="text-xs text-gray-600">Đã xác thực:</Text>
-            <View className="flex flex-row gap-2 items-center ml-1">
+              <View className="flex-row items-center mt-2.5">
+                {averageRating !== null ? (
+                  <>
+                    <StarRating rating={Math.round(averageRating)} />
+                    <Text className="text-xs text-slate-500 ml-1.5 font-medium">
+                      {averageRating.toFixed(1)} ({ratingCount} đánh giá)
+                    </Text>
+                  </>
+                ) : (
+                  <View className="flex-row items-center gap-1">
+                    <Ionicons name="star-outline" size={13} color="#94a3b8" />
+                    <Text className="text-xs text-slate-400 font-medium">Chưa có đánh giá</Text>
+                  </View>
+                )}
+              </View>
+
+              <View className="flex-row items-center gap-3 mt-3.5">
+                <View className="flex-row items-center gap-1">
+                  <Text className="text-xs font-bold text-slate-800">
+                    {user?.followerCount || 0}
+                  </Text>
+                  <Text className="text-xs text-slate-500">người theo dõi</Text>
+                </View>
+                <View className="w-1 h-1 rounded-full bg-slate-350" />
+                <View className="flex-row items-center gap-1">
+                  <Text className="text-xs font-bold text-slate-800">
+                    {user?.followingCount || 0}
+                  </Text>
+                  <Text className="text-xs text-slate-500">đang theo dõi</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Follow / Edit Button */}
+            {!isOwnProfile && (
               <TouchableOpacity
-                onPress={() => navigation.navigate("VerifyStudentScreen")}
+                onPress={async () => {
+                  if (!user) return;
+                  const token = await AsyncStorage.getItem("token");
+                  if (!token || !currentUserId) {
+                    return Alert.alert("Lỗi", "Vui lòng đăng nhập để theo dõi.");
+                  }
+                  try {
+                    const res = await axios.post(
+                      `${path}/follow/toggle`,
+                      {
+                        followerId: Number(currentUserId),
+                        followingId: Number(user.id),
+                      },
+                      { headers: { Authorization: `Bearer ${token}` } }
+                    );
+                    const { isFollowing, followerCount } = res.data;
+                    setUser((prev: any) => ({
+                      ...prev,
+                      isFollowing: isFollowing,
+                      followerCount: followerCount,
+                    }));
+                  } catch (err: any) {
+                    console.log("Lỗi Follow:", err);
+                    Alert.alert("Lỗi", "Không thể thực hiện thao tác.");
+                  }
+                }}
+                className={`py-2 px-4 rounded-full flex-row items-center gap-1.5 border shadow-sm ${
+                  user?.isFollowing
+                    ? "bg-slate-50 border-slate-200 active:bg-slate-100"
+                    : "bg-blue-600 border-blue-600 active:bg-blue-700"
+                }`}
               >
+                <Ionicons
+                  name={user?.isFollowing ? "checkmark" : "person-add"}
+                  size={14}
+                  color={user?.isFollowing ? "#475569" : "white"}
+                />
                 <Text
-                  className={`text-xs ml-1 underline ${user?.is_cccd_verified ? "text-blue-500" : "text-red-500"}`}
+                  className={`font-semibold text-xs ${
+                    user?.isFollowing ? "text-slate-600" : "text-white"
+                  }`}
                 >
-                  {user?.is_cccd_verified
-                    ? "Xác thực lại"
-                    : "Xác thực sinh viên"}
+                  {user?.isFollowing ? "Đang theo dõi" : "Theo dõi"}
                 </Text>
               </TouchableOpacity>
-            </View>
-          </View>
-        )}
+            )}
 
-        <View className="flex flex-row gap-2 items-center">
-          <MaterialIcons name="near-me" size={16} color="gray" />
-          <Text className="text-xs text-gray-600">
-            Địa chỉ: {user?.address_json?.full || "Chưa cung cấp"}
-          </Text>
+            {isOwnProfile && (
+              <TouchableOpacity
+                onPress={() => navigation.navigate("EditProfileScreen")}
+                className="py-2 px-4 rounded-full bg-slate-50 border border-slate-200 active:bg-slate-100 flex-row items-center gap-1.5 shadow-sm"
+              >
+                <Ionicons name="create-outline" size={14} color="#475569" />
+                <Text className="font-semibold text-xs text-slate-600">
+                  Chỉnh sửa
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
-        {/* Nút xem thêm/ẩn */}
-        <TouchableOpacity
-          className="mt-1"
-          onPress={() => setShowMore(!showMore)}
-        >
-          <Text className="text-xs text-yellow-500 font-semibold">
-            {showMore ? "Ẩn thông tin" : "Xem thêm thông tin"}
+        {/* Personal Info Card */}
+        <View className="mx-4 mt-6 bg-white rounded-[22px] border border-slate-100 p-5 shadow-xs">
+          <Text className="text-xs font-bold text-slate-400 mb-4 uppercase tracking-wider">
+            Thông tin cá nhân
           </Text>
-        </TouchableOpacity>
 
-        {/* PHẦN ẨN/HIỆN */}
-        {showMore && (
-          <View className="flex flex-col gap-3 mt-2">
-            {/* Quê quán */}
-            <View className="flex flex-row gap-2 items-center">
-              <MaterialIcons name="near-me" size={16} color="gray" />
-              <View className="flex-1 flex-row justify-between">
-                <Text className="text-xs text-gray-600">Quê quán:</Text>
-                <Text className="text-xs text-gray-800 font-medium">
-                  {user?.hometown || "Chưa cập nhật"}
+          <View className="flex flex-col gap-4">
+            {/* Joining Date */}
+            <View className="flex-row items-center gap-3">
+              <View className="w-8 h-8 rounded-full bg-blue-50 items-center justify-center">
+                <Ionicons name="time-outline" size={16} color="#2563eb" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-[10px] text-slate-400">Tham gia hệ thống</Text>
+                <Text className="text-xs font-semibold text-slate-700 mt-0.5">
+                  {timeSince(user?.createdAt)}
                 </Text>
               </View>
             </View>
-            {/* Số điện thoại (CHỈ HIỂN THỊ TRÊN HỒ SƠ CỦA MÌNH) */}
-            {
-              <View className="flex flex-row gap-2 items-center">
-                <MaterialIcons name="phone" size={16} color="gray" />
-                <View className="flex-1 flex-row justify-between">
-                  <Text className="text-xs text-gray-600">Số điện thoại:</Text>
-                  <Text className="text-xs text-gray-800 font-medium">
+
+            {/* Location / Address */}
+            <View className="flex-row items-center gap-3">
+              <View className="w-8 h-8 rounded-full bg-blue-50 items-center justify-center">
+                <Ionicons name="location-outline" size={16} color="#2563eb" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-[10px] text-slate-400">Địa chỉ hiện tại</Text>
+                <Text className="text-xs font-semibold text-slate-700 mt-0.5" numberOfLines={2}>
+                  {user?.address_json?.full || "Chưa cung cấp"}
+                </Text>
+              </View>
+            </View>
+
+            {/* CCCD Student Verification (ONLY FOR OWNER) */}
+            {isOwnProfile && (
+              <View className="flex-row items-center gap-3 border-t border-slate-50 pt-3">
+                <View className="w-8 h-8 rounded-full bg-blue-50 items-center justify-center">
+                  <Ionicons name="shield-checkmark-outline" size={16} color="#2563eb" />
+                </View>
+                <View className="flex-1 flex-row items-center justify-between">
+                  <View>
+                    <Text className="text-[10px] text-slate-400">Trạng thái sinh viên</Text>
+                    <Text className={`text-xs font-semibold mt-0.5 ${user?.is_cccd_verified ? "text-emerald-600" : "text-amber-600"}`}>
+                      {user?.is_cccd_verified ? "Đã xác thực sinh viên" : "Chưa xác thực"}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate("VerifyStudentScreen")}
+                    className={`py-1 px-3 rounded-full border ${
+                      user?.is_cccd_verified
+                        ? "border-slate-200 bg-slate-50 active:bg-slate-100"
+                        : "border-blue-600 bg-blue-50 active:bg-blue-100"
+                    }`}
+                  >
+                    <Text className={`text-xs font-semibold ${user?.is_cccd_verified ? "text-slate-500" : "text-blue-600"}`}>
+                      {user?.is_cccd_verified ? "Xác thực lại" : "Xác thực ngay"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </View>
+
+          {/* View More Toggle */}
+          <TouchableOpacity
+            className="mt-4 pt-3 border-t border-slate-50 flex-row items-center justify-center gap-1"
+            onPress={() => setShowMore(!showMore)}
+          >
+            <Text className="text-xs text-blue-600 font-semibold">
+              {showMore ? "Thu gọn thông tin" : "Xem thêm thông tin"}
+            </Text>
+            <Ionicons
+              name={showMore ? "chevron-up" : "chevron-down"}
+              size={14}
+              color="#2563eb"
+            />
+          </TouchableOpacity>
+
+          {/* Collapsible Info Section */}
+          {showMore && (
+            <View className="flex flex-col gap-3 mt-4 pt-3 border-t border-slate-50">
+              {/* Quê quán */}
+              <View className="flex-row items-center gap-3">
+                <View className="w-8 h-8 rounded-full bg-slate-50 items-center justify-center">
+                  <Ionicons name="home-outline" size={16} color="#64748b" />
+                </View>
+                <View className="flex-1 flex-row justify-between items-center">
+                  <Text className="text-xs text-slate-500">Quê quán</Text>
+                  <Text className="text-xs font-semibold text-slate-700">
+                    {user?.hometown || "Chưa cập nhật"}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Số điện thoại */}
+              <View className="flex-row items-center gap-3">
+                <View className="w-8 h-8 rounded-full bg-slate-50 items-center justify-center">
+                  <Ionicons name="call-outline" size={16} color="#64748b" />
+                </View>
+                <View className="flex-1 flex-row justify-between items-center">
+                  <Text className="text-xs text-slate-500">Số điện thoại</Text>
+                  <Text className="text-xs font-semibold text-slate-700">
                     {user?.phone || "Chưa cập nhật"}
                   </Text>
                 </View>
               </View>
-            }
-            {/* Tên gợi nhớ */}
-            <View className="flex flex-row gap-2 items-center">
-              <MaterialIcons name="person-outline" size={16} color="gray" />
-              <View className="flex-1 flex-row justify-between">
-                <Text className="text-xs text-gray-600">Họ và tên:</Text>
-                <Text className="text-xs text-gray-800 font-medium">
-                  {user?.fullName || "Chưa cập nhật"}
-                </Text>
+
+              {/* Họ và tên */}
+              <View className="flex-row items-center gap-3">
+                <View className="w-8 h-8 rounded-full bg-slate-50 items-center justify-center">
+                  <Ionicons name="person-outline" size={16} color="#64748b" />
+                </View>
+                <View className="flex-1 flex-row justify-between items-center">
+                  <Text className="text-xs text-slate-500">Họ và tên</Text>
+                  <Text className="text-xs font-semibold text-slate-700">
+                    {user?.fullName || "Chưa cập nhật"}
+                  </Text>
+                </View>
               </View>
-            </View>
-            {/* CCCD (CHỈ HIỂN THỊ TRÊN HỒ SƠ CỦA MÌNH) */}
-            {isOwnProfile && (
-              <View className="flex flex-row gap-2 items-center">
-                <MaterialIcons name="badge" size={16} color="gray" />
-                <View className="flex-1 flex-row justify-between">
-                  <Text className="text-xs text-gray-600">CCCD / CMND:</Text>
-                  <Text className="text-xs text-gray-800 font-medium">
-                    {user?.citizenId
-                      ? "******" + user.citizenId.slice(-4)
+
+              {/* CCCD (CHỈ HIỂN THỊ TRÊN HỒ SƠ CỦA MÌNH) */}
+              {isOwnProfile && (
+                <View className="flex-row items-center gap-3">
+                  <View className="w-8 h-8 rounded-full bg-slate-50 items-center justify-center">
+                    <Ionicons name="card-outline" size={16} color="#64748b" />
+                  </View>
+                  <View className="flex-1 flex-row justify-between items-center">
+                    <Text className="text-xs text-slate-500">Số CCCD / CMND</Text>
+                    <Text className="text-xs font-semibold text-slate-700">
+                      {user?.citizenId
+                        ? "******" + user.citizenId.slice(-4)
+                        : "Chưa cập nhật"}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Giới tính */}
+              <View className="flex-row items-center gap-3">
+                <View className="w-8 h-8 rounded-full bg-slate-50 items-center justify-center">
+                  <Ionicons name="transgender-outline" size={16} color="#64748b" />
+                </View>
+                <View className="flex-1 flex-row justify-between items-center">
+                  <Text className="text-xs text-slate-500">Giới tính</Text>
+                  <Text className="text-xs font-semibold text-slate-700">
+                    {user?.gender === 1 || user?.gender === "Nam"
+                      ? "Nam"
+                      : user?.gender === 2 || user?.gender === "Nữ"
+                        ? "Nữ"
+                        : user?.gender === 3 || user?.gender === "Khác"
+                          ? "Khác"
+                          : "Chưa cập nhật"}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Ngày sinh */}
+              <View className="flex-row items-center gap-3">
+                <View className="w-8 h-8 rounded-full bg-slate-50 items-center justify-center">
+                  <Ionicons name="gift-outline" size={16} color="#64748b" />
+                </View>
+                <View className="flex-1 flex-row justify-between items-center">
+                  <Text className="text-xs text-slate-500">Ngày sinh</Text>
+                  <Text className="text-xs font-semibold text-slate-700">
+                    {user?.dob
+                      ? new Date(user.dob).toLocaleDateString("vi-VN")
                       : "Chưa cập nhật"}
                   </Text>
                 </View>
               </View>
-            )}
-            {/* Giới tính */}
-            <View className="flex flex-row gap-2 items-center">
-              <MaterialIcons name="wc" size={16} color="gray" />
-              <View className="flex-1 flex-row justify-between">
-                <Text className="text-xs text-gray-600">Giới tính:</Text>
-                <Text className="text-xs text-gray-800 font-medium">
-                  {user?.gender === 1 || user?.gender === "Nam"
-                    ? "Nam"
-                    : user?.gender === 2 || user?.gender === "Nữ"
-                      ? "Nữ"
-                      : user?.gender === 3 || user?.gender === "Khác"
-                        ? "Khác"
-                        : "Chưa cập nhật"}
-                </Text>
-              </View>
             </View>
-            {/* Ngày sinh */}
-            <View className="flex flex-row gap-2 items-center">
-              <MaterialIcons name="cake" size={16} color="gray" />
-              <View className="flex-1 flex-row justify-between">
-                <Text className="text-xs text-gray-600">Ngày sinh:</Text>
-                <Text className="text-xs text-gray-800 font-medium">
-                  {user?.dob
-                    ? new Date(user.dob).toLocaleDateString("vi-VN")
-                    : "Chưa cập nhật"}
-                </Text>
-              </View>
+          )}
+        </View>
+
+        {/* Reviews Section */}
+        <View className="mx-4 mt-6">
+          {/* Write Review Button (only for other profiles when logged in) */}
+          {!isOwnProfile && currentUserId && (
+            <TouchableOpacity
+              onPress={() =>
+                myRating
+                  ? setRatingMenuVisible(true)
+                  : setRatingModalVisible(true)
+              }
+              className={`py-3.5 rounded-2xl flex-row justify-center items-center gap-2 border shadow-sm ${
+                myRating
+                  ? "bg-white border-blue-600 active:bg-blue-50"
+                  : "bg-blue-600 border-blue-600 active:bg-blue-700"
+              }`}
+            >
+              <Ionicons
+                name={myRating ? "star" : "star-outline"}
+                size={16}
+                color={myRating ? "#2563eb" : "white"}
+              />
+              <Text
+                className={`text-center font-semibold text-sm ${
+                  myRating ? "text-blue-600" : "text-white"
+                }`}
+              >
+                {myRating ? "Đánh giá của bạn" : "Viết đánh giá"}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {ratings.length > 0 && (
+            <View className="mt-4">
+              <Text className="text-sm font-bold text-slate-800 mb-3 ml-1">
+                Đánh giá từ người dùng ({ratingCount})
+              </Text>
+              {ratings.map((rating) => (
+                <RatingCard key={rating.id} rating={rating} />
+              ))}
             </View>
-          </View>
-        )}
-        {/* Nút "Viết đánh giá" - CHỈ HIỂN THỊ TRÊN HỒ SƠ NGƯỜI KHÁC VÀ KHI ĐÃ ĐĂNG NHẬP */}
-        {!isOwnProfile && currentUserId && (
+          )}
+        </View>
+
+        {/* Product Tabs (Inline State Switcher) */}
+        <View className="mt-8 bg-white border-b border-slate-100 flex-row px-4">
           <TouchableOpacity
-            onPress={() =>
-              myRating
-                ? setRatingMenuVisible(true)
-                : setRatingModalVisible(true)
-            }
-            className={`py-2 rounded-xl mt-3 ${myRating ? "bg-white border border-yellow-400" : "bg-yellow-400"}`}
+            onPress={() => setActiveTab("displaying")}
+            className={`flex-1 py-3.5 items-center border-b-2 ${
+              activeTab === "displaying" ? "border-blue-600" : "border-transparent"
+            }`}
           >
             <Text
-              className={`text-center font-medium ${myRating ? "text-yellow-500" : "text-white"}`}
+              className={`font-semibold text-xs ${
+                activeTab === "displaying" ? "text-blue-600" : "text-slate-400"
+              }`}
             >
-              {myRating ? "Đánh giá của bạn" : "Viết đánh giá"}
+              Đang hiển thị ({displayingProducts.length})
             </Text>
           </TouchableOpacity>
-        )}
-        {/* Danh sách đánh giá */}
-        {ratings.length > 0 && (
-          <View className="px-3 mt-2">
-            <Text className="text-base font-semibold mb-2">
-              Đánh giá từ người dùng ({ratingCount})
+          <TouchableOpacity
+            onPress={() => setActiveTab("sold")}
+            className={`flex-1 py-3.5 items-center border-b-2 ${
+              activeTab === "sold" ? "border-blue-600" : "border-transparent"
+            }`}
+          >
+            <Text
+              className={`font-semibold text-xs ${
+                activeTab === "sold" ? "text-blue-600" : "text-slate-400"
+              }`}
+            >
+              Đã bán ({soldProducts.length})
             </Text>
-            {ratings.map((rating) => (
-              <RatingCard key={rating.id} rating={rating} />
-            ))}
-          </View>
-        )}
-      </View>
+          </TouchableOpacity>
+        </View>
 
-      {/* Tabs */}
-      <View className="mt-8 h-[350px]">
-        <TabView
-          navigationState={{ index, routes }}
-          renderScene={renderScene}
-          onIndexChange={setIndex}
-          initialLayout={{ width: layout.width }}
-          renderTabBar={(props: any) => (
-            <TabBar
-              {...props}
-              indicatorStyle={{
-                backgroundColor: "#facc15",
-                height: 3,
-                borderRadius: 2,
-              }}
-              style={{
-                backgroundColor: "white",
-                elevation: 0,
-                shadowOpacity: 0,
-              }}
-              labelStyle={{
-                color: "#000",
-                fontWeight: "600",
-                textTransform: "none",
-                fontSize: 13,
-              }}
-              activeColor="#000"
-              inactiveColor="#9ca3af"
-            />
+        {/* Product Items List */}
+        <View className="bg-slate-50/40 pt-4 pb-6">
+          {activeTab === "displaying" ? (
+            displayingProducts.length > 0 ? (
+              displayingProducts.map((item) => (
+                <RenderProductItem
+                  key={item.id}
+                  item={item}
+                  navigation={navigation}
+                />
+              ))
+            ) : (
+              <View className="items-center py-10">
+                <Ionicons name="cube-outline" size={40} color="#cbd5e1" />
+                <Text className="text-slate-400 mt-2 text-xs font-medium">
+                  Chưa có sản phẩm nào đang hiển thị
+                </Text>
+              </View>
+            )
+          ) : (
+            soldProducts.length > 0 ? (
+              soldProducts.map((item) => (
+                <RenderProductItem
+                  key={item.id}
+                  item={item}
+                  navigation={navigation}
+                />
+              ))
+            ) : (
+              <View className="items-center py-10">
+                <Ionicons name="receipt-outline" size={40} color="#cbd5e1" />
+                <Text className="text-slate-400 mt-2 text-xs font-medium">
+                  Chưa có sản phẩm nào đã bán
+                </Text>
+              </View>
+            )
           )}
-        />
-      </View>
+        </View>
+      </ScrollView>
 
       {/* Modal Rating (Dành cho hồ sơ người khác) */}
       <Modal
@@ -1076,17 +1159,17 @@ export default function UserInforScreen({ navigation, route }: any) {
         onRequestClose={() => setRatingModalVisible(false)}
       >
         <Pressable
-          className="flex-1 bg-black/40 justify-center items-center"
+          className="flex-1 bg-black/45 justify-center items-center"
           onPress={() => setRatingModalVisible(false)}
         >
           <Pressable
             onPress={(e) => e.stopPropagation()}
-            className="bg-white w-80 rounded-xl p-5 shadow-lg"
+            className="bg-white w-[320px] rounded-3xl p-6 shadow-xl"
           >
-            <Text className="text-lg font-semibold text-center mb-5">
+            <Text className="text-base font-bold text-center mb-5 text-slate-800">
               {myRating ? "Chỉnh sửa đánh giá" : "Đánh giá người dùng"}
             </Text>
-            <View className="items-center mb-4">
+            <View className="items-center mb-5">
               <StarRating
                 rating={selectedStars}
                 onChange={setSelectedStars}
@@ -1094,7 +1177,7 @@ export default function UserInforScreen({ navigation, route }: any) {
               />
             </View>
             <TextInput
-              className="border border-gray-300 rounded-lg p-3 h-24 text-sm mb-4"
+              className="border border-slate-200 focus:border-blue-600 rounded-2xl p-4 h-28 text-sm text-slate-850 bg-slate-50/50 mb-5"
               placeholder="Nhận xét của bạn (tùy chọn)"
               multiline
               value={ratingContent}
@@ -1104,19 +1187,23 @@ export default function UserInforScreen({ navigation, route }: any) {
             <TouchableOpacity
               onPress={handleSubmitRating}
               disabled={selectedStars === 0}
-              className={`py-3 rounded-xl mb-3 ${selectedStars === 0 ? "bg-gray-300" : "bg-orange-500 active:bg-orange-600"}`}
+              className={`py-3.5 rounded-2xl mb-3 shadow-xs flex-row justify-center ${
+                selectedStars === 0 ? "bg-slate-200" : "bg-blue-600 active:bg-blue-700"
+              }`}
             >
               <Text
-                className={`text-center font-semibold ${selectedStars === 0 ? "text-gray-500" : "text-white"}`}
+                className={`text-center font-bold text-sm ${
+                  selectedStars === 0 ? "text-slate-400" : "text-white"
+                }`}
               >
                 {myRating ? "Cập nhật" : "Gửi đánh giá"}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setRatingModalVisible(false)}
-              className="bg-gray-100 py-2 rounded-xl"
+              className="bg-slate-50 border border-slate-100 py-3 rounded-2xl active:bg-slate-100"
             >
-              <Text className="text-center text-gray-700 font-medium">Hủy</Text>
+              <Text className="text-center text-slate-650 font-bold text-sm">Hủy</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
@@ -1130,40 +1217,34 @@ export default function UserInforScreen({ navigation, route }: any) {
         onRequestClose={() => setRatingMenuVisible(false)}
       >
         <Pressable
-          className="flex-1 bg-black/50"
+          className="flex-1 bg-black/45 justify-center items-center"
           onPress={() => setRatingMenuVisible(false)}
         >
-          <View className="flex-1 justify-center items-center">
-            <Pressable
-              onPress={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl shadow-2xl w-72"
+          <Pressable
+            onPress={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl shadow-xl w-72 overflow-hidden border border-slate-100"
+          >
+            <TouchableOpacity
+              onPress={() => {
+                setRatingMenuVisible(false);
+                setRatingModalVisible(true);
+              }}
+              className="px-5 py-4.5 flex-row items-center gap-3 border-b border-slate-100 active:bg-slate-50"
             >
-              <TouchableOpacity
-                onPress={() => {
-                  setRatingMenuVisible(false);
-                  setRatingModalVisible(true);
-                }}
-                className="px-5 py-4 flex-row items-center gap-3 border-b border-gray-200"
-              >
-                <MaterialIcons name="edit" size={20} color="#666" />
-                <Text className="text-base">Chỉnh sửa đánh giá</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {
-                  setRatingMenuVisible(false);
-                  deleteMyRating();
-                }}
-                className="px-5 py-4 flex-row items-center gap-3"
-              >
-                <MaterialIcons
-                  name="delete-outline"
-                  size={20}
-                  color="#ef4444"
-                />
-                <Text className="text-base text-red-500">Xóa đánh giá</Text>
-              </TouchableOpacity>
-            </Pressable>
-          </View>
+              <Ionicons name="create-outline" size={20} color="#475569" />
+              <Text className="text-sm font-semibold text-slate-700">Chỉnh sửa đánh giá</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                setRatingMenuVisible(false);
+                deleteMyRating();
+              }}
+              className="px-5 py-4.5 flex-row items-center gap-3 active:bg-slate-50"
+            >
+              <Ionicons name="trash-outline" size={20} color="#ef4444" />
+              <Text className="text-sm font-semibold text-red-500">Xóa đánh giá</Text>
+            </TouchableOpacity>
+          </Pressable>
         </Pressable>
       </Modal>
 
@@ -1175,42 +1256,45 @@ export default function UserInforScreen({ navigation, route }: any) {
         onRequestClose={() => setMenuVisible(false)}
       >
         <Pressable
-          className="flex-1 bg-black/40 justify-center items-center"
+          className="flex-1 bg-black/45 justify-center items-center"
           onPress={() => setMenuVisible(false)}
         >
-          <View className="bg-white w-72 rounded-2xl shadow-lg p-3">
-            {/* Nếu là hồ sơ của mình → thêm nút chỉnh sửa */}
+          <View className="bg-white w-72 rounded-3xl shadow-xl overflow-hidden border border-slate-100">
             {isOwnProfile && (
               <TouchableOpacity
                 onPress={() => {
                   setMenuVisible(false);
                   navigation.navigate("EditProfileScreen");
                 }}
-                className="py-3"
+                className="px-5 py-4 flex-row items-center gap-3 border-b border-slate-100 active:bg-slate-50"
               >
-                <Text className="text-gray-700 text-center border-b border-gray-200">
+                <Ionicons name="create-outline" size={18} color="#475569" />
+                <Text className="text-sm font-semibold text-slate-750">
                   Chỉnh sửa thông tin
                 </Text>
               </TouchableOpacity>
             )}
 
-            {/* Luôn có nút sao chép liên kết */}
-            <TouchableOpacity onPress={handleCopyLink} className="px-4 py-3">
-              <Text className="text-gray-700 text-center">
+            <TouchableOpacity
+              onPress={handleCopyLink}
+              className="px-5 py-4 flex-row items-center gap-3 border-b border-slate-100 active:bg-slate-50"
+            >
+              <Ionicons name="copy-outline" size={18} color="#475569" />
+              <Text className="text-sm font-semibold text-slate-750">
                 Sao chép liên kết
               </Text>
             </TouchableOpacity>
 
-            {/* Nếu không phải hồ sơ của mình → thêm nút báo cáo */}
             {!isOwnProfile && (
               <TouchableOpacity
                 onPress={() => {
                   setMenuVisible(false);
                   setReportVisible(true);
                 }}
-                className="px-4 py-3"
+                className="px-5 py-4 flex-row items-center gap-3 active:bg-slate-50"
               >
-                <Text className="text-red-500 text-center font-medium">
+                <Ionicons name="flag-outline" size={18} color="#ef4444" />
+                <Text className="text-sm font-semibold text-red-500">
                   Báo cáo vi phạm
                 </Text>
               </TouchableOpacity>
@@ -1227,18 +1311,17 @@ export default function UserInforScreen({ navigation, route }: any) {
         onRequestClose={() => setReportVisible(false)}
       >
         <Pressable
-          className="flex-1 bg-black/40 justify-center items-center px-4"
+          className="flex-1 bg-black/45 justify-center items-center px-4"
           onPress={() => setReportVisible(false)}
         >
           <Pressable
             onPress={(e) => e.stopPropagation()}
-            className="bg-white w-full max-w-sm rounded-2xl p-5 shadow-xl"
+            className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-xl"
           >
-            <Text className="text-lg font-bold text-center mb-4 text-gray-800">
+            <Text className="text-base font-bold text-center mb-5 text-slate-800">
               Báo cáo vi phạm
             </Text>
 
-            {/* Danh sách lý do */}
             <View className="gap-2">
               {[
                 "Hình ảnh không phù hợp",
@@ -1252,50 +1335,48 @@ export default function UserInforScreen({ navigation, route }: any) {
                   onPress={() => setReportReason(item)}
                   className={`py-3 px-4 rounded-xl border ${
                     reportReason === item
-                      ? "bg-red-50 border-red-500"
-                      : "bg-gray-50 border-gray-100"
+                      ? "bg-red-50/50 border-red-400"
+                      : "bg-slate-50 border-slate-100 active:bg-slate-100"
                   }`}
                 >
                   <View className="flex-row items-center justify-between">
                     <Text
-                      className={`${
+                      className={`text-xs font-semibold ${
                         reportReason === item
-                          ? "text-red-600 font-medium"
-                          : "text-gray-700"
+                          ? "text-red-600"
+                          : "text-slate-650"
                       }`}
                     >
                       {item}
                     </Text>
                     {reportReason === item && (
-                      <MaterialIcons name="check" size={18} color="#ef4444" />
+                      <Ionicons name="checkmark" size={16} color="#ef4444" />
                     )}
                   </View>
                 </TouchableOpacity>
               ))}
             </View>
 
-            {/* Ô nhập mô tả thêm */}
             {reportReason && (
-              <View className="mt-4 animate-pulse">
+              <View className="mt-4">
                 <View className="flex-row justify-between mb-1 ml-1">
-                  <Text className="text-xs text-gray-600 font-medium">
+                  <Text className="text-xxs text-slate-400 font-bold uppercase tracking-wider">
                     {reportReason === "Lý do khác"
                       ? "Chi tiết vi phạm (Bắt buộc):"
                       : "Chi tiết thêm (Tùy chọn):"}
                   </Text>
-                  {/* 🟢 Thêm bộ đếm ký tự ở đây */}
                   <Text
-                    className={`text-xs ${reportDescription.length > 200 ? "text-red-500" : "text-gray-400"}`}
+                    className={`text-xxs ${reportDescription.length > 200 ? "text-red-500" : "text-slate-400"}`}
                   >
                     {reportDescription.length}/200
                   </Text>
                 </View>
 
                 <TextInput
-                  className={`bg-gray-50 border rounded-xl p-3 h-24 text-sm ${
+                  className={`bg-slate-50 border rounded-2xl p-3 h-24 text-xs text-slate-800 ${
                     reportReason === "Lý do khác" && !reportDescription.trim()
-                      ? "border-red-300"
-                      : "border-gray-200"
+                      ? "border-red-200"
+                      : "border-slate-150 focus:border-blue-500"
                   }`}
                   placeholder={
                     reportReason === "Lý do khác"
@@ -1311,8 +1392,7 @@ export default function UserInforScreen({ navigation, route }: any) {
               </View>
             )}
 
-            {/* Buttons Action */}
-            <View className="mt-5 gap-3">
+            <View className="mt-6 gap-3">
               <TouchableOpacity
                 onPress={handleSendReport}
                 disabled={
@@ -1320,17 +1400,18 @@ export default function UserInforScreen({ navigation, route }: any) {
                   isSendingReport ||
                   (reportReason === "Lý do khác" && !reportDescription.trim())
                 }
-                className={`py-3 rounded-xl flex-row justify-center items-center ${
+                className={`py-3.5 rounded-2xl flex-row justify-center items-center shadow-xs ${
                   !reportReason ||
+                  (reportReason === "Lý do scandals" && !reportDescription.trim()) ||
                   (reportReason === "Lý do khác" && !reportDescription.trim())
-                    ? "bg-gray-300"
-                    : "bg-red-500"
+                    ? "bg-slate-200"
+                    : "bg-red-500 active:bg-red-650"
                 }`}
               >
                 {isSendingReport ? (
                   <ActivityIndicator color="white" size="small" />
                 ) : (
-                  <Text className="text-center text-white font-bold text-base">
+                  <Text className="text-center text-white font-bold text-sm">
                     Gửi báo cáo
                   </Text>
                 )}
@@ -1342,9 +1423,9 @@ export default function UserInforScreen({ navigation, route }: any) {
                   setReportReason(null);
                   setReportDescription("");
                 }}
-                className="py-3 rounded-xl bg-gray-100"
+                className="py-3.5 rounded-2xl bg-slate-50 border border-slate-100 active:bg-slate-100"
               >
-                <Text className="text-center text-gray-700 font-semibold">
+                <Text className="text-center text-slate-650 font-bold text-sm">
                   Hủy bỏ
                 </Text>
               </TouchableOpacity>
@@ -1352,6 +1433,6 @@ export default function UserInforScreen({ navigation, route }: any) {
           </Pressable>
         </Pressable>
       </Modal>
-    </ScrollView>
+    </SafeAreaView>
   );
 }
