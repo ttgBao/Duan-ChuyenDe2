@@ -87,35 +87,20 @@ export default function UserScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#f3f4f6" }}>
-      <StatusBar barStyle="dark-content" />
-      <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
-        <View
-          style={{ alignItems: "center", paddingTop: 32, paddingBottom: 24 }}
-        >
-          {/* Avatar */}
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#faf9f6" }}>
+      <StatusBar barStyle="dark-content" backgroundColor="#faf9f6" />
+      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+        
+        {/* Profile Header Block */}
+        <View className="items-center pt-8 pb-6">
           <TouchableOpacity
+            activeOpacity={0.9}
             onPress={() =>
               navigation.navigate("UserInforScreen", { userId: user.id })
             }
+            className="p-1 rounded-full bg-black/[0.02] border border-black/[0.04] shadow-sm"
           >
-            <View
-              style={{
-                width: 96,
-                height: 96,
-                borderRadius: 48,
-                backgroundColor: "#d1d5db",
-                alignItems: "center",
-                justifyContent: "center",
-                borderWidth: 4,
-                borderColor: "white",
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
-                elevation: 3,
-              }}
-            >
+            <View className="w-24 h-24 rounded-full bg-gray-250 border-4 border-white overflow-hidden justify-center items-center">
               <Image
                 source={
                   user.avatar
@@ -126,48 +111,24 @@ export default function UserScreen() {
                       }
                     : require("../../assets/default.png")
                 }
-                style={{ width: "100%", height: "100%", borderRadius: 48 }}
+                className="w-full h-full rounded-full"
               />
             </View>
           </TouchableOpacity>
 
-          {/* Tên */}
-          <Text
-            style={{
-              fontSize: 20,
-              fontWeight: "bold",
-              marginTop: 12,
-              color: "#1f2937",
-            }}
-          >
+          <Text className="text-lg font-extrabold text-gray-850 mt-3.5">
             {user.name || "Đang tải..."}
           </Text>
+          <Text className="text-gray-400 text-xs font-medium mt-0.5">Sinh viên trường TDC</Text>
         </View>
 
-        {/* --- Tiện ích --- */}
-        <View style={{ paddingHorizontal: 16 }}>
-          <Text
-            style={{
-              color: "#6b7280",
-              fontWeight: "600",
-              marginBottom: 8,
-              marginLeft: 8,
-            }}
-          >
-            Tiện ích
+        {/* Utilities Panel */}
+        <View className="px-4">
+          <Text className="text-xs font-bold text-gray-450 uppercase tracking-wider mb-2.5 ml-2">
+            Tiện ích hệ thống
           </Text>
 
-          <View
-            style={{
-              backgroundColor: "white",
-              borderRadius: 12,
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.05,
-              shadowRadius: 3,
-              elevation: 2,
-            }}
-          >
+          <View className="bg-white rounded-[22px] border border-gray-100/80 overflow-hidden shadow-sm">
             <UtilityItem
               icon="person-outline"
               title="Tài khoản của tôi"
@@ -180,64 +141,62 @@ export default function UserScreen() {
               <UtilityItem
                 icon="shield-checkmark-outline"
                 title="Quản lý Admin"
-                color="#3b82f6"
+                color="#6366f1"
                 onPress={() => navigation.navigate("HomeAdminScreen")}
               />
             )}
 
             <UtilityItem
               icon="newspaper-outline"
-              title="Quản lý tin"
+              title="Quản lý tin đăng"
               onPress={() => navigation.navigate("ManagePostsScreen")}
             />
+            
             <UtilityItem
               icon="heart-outline"
               title="Tin đăng đã thích"
               onPress={() => navigation.navigate("SavedPostsScreen")}
             />
+            
             <UtilityItem
               icon="star-outline"
-              title="Đánh giá từ tôi"
+              title="Đánh giá của tôi"
               onPress={() => navigation.navigate("FeedbackScreen")}
             />
-           <UtilityItem
-  icon="log-out-outline"
-  title="Đăng xuất"
-  isLast
-  color="red"
-  onPress={async () => {
-    try {
-      // 1. Ngắt đúng socket chat của ChatContext
-      const socket = socketRef.current;
-      if (socket) {
-        socket.emit("logout");        // cho backend biết (nếu bạn có handle)
-        socket.disconnect();          // cắt kết nối
-        socketRef.current = null;     // rất quan trọng
-      }
+            
+            <UtilityItem
+              icon="log-out-outline"
+              title="Đăng xuất"
+              isLast
+              color="#ef4444"
+              onPress={async () => {
+                try {
+                  const socket = socketRef.current;
+                  if (socket) {
+                    socket.emit("logout");
+                    socket.disconnect();
+                    socketRef.current = null;
+                  }
 
-      // 2. Reset badge trên FE
-      setUnreadCount(0);
+                  setUnreadCount(0);
 
-      // 3. Xoá thông tin đăng nhập
-      await AsyncStorage.multiRemove([
-        "token",
-        "userId",
-        "userName",
-        "userAvatar",
-        "role_id",
-      ]);
+                  await AsyncStorage.multiRemove([
+                    "token",
+                    "userId",
+                    "userName",
+                    "userAvatar",
+                    "role_id",
+                  ]);
 
-      // 4. Điều hướng về màn Login
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "LoginScreen" }],
-      });
-    } catch (err) {
-      console.log("Lỗi logout:", err);
-    }
-  }}
-/>
-
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "LoginScreen" }],
+                  });
+                } catch (err) {
+                  console.log("Lỗi logout:", err);
+                }
+              }}
+            />
           </View>
         </View>
       </ScrollView>
@@ -251,44 +210,35 @@ function UtilityItem({
   title,
   isLast = false,
   onPress,
-  textStyle,
   color,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
   isLast?: boolean;
   onPress?: () => void;
-  textStyle?: object;
   color?: string;
 }) {
+  const iconColor = color || "#4b5563";
   const textColor = color || "#1f2937";
-  const iconColor = color || "#6b7280";
 
   return (
     <TouchableOpacity
       onPress={onPress}
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: 16,
-        borderBottomWidth: isLast ? 0 : 1,
-        borderBottomColor: "#f3f4f6",
-      }}
-      activeOpacity={0.7}
+      className={`flex-row items-center justify-between p-4 active:bg-gray-50/50 ${
+        isLast ? "" : "border-b border-gray-50"
+      }`}
+      activeOpacity={0.65}
     >
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <Ionicons name={icon} size={24} color={iconColor} />
-        <Text
-          style={[
-            { marginLeft: 16, fontSize: 16, color: textColor },
-            textStyle,
-          ]}
+      <View className="flex-row items-center">
+        <Ionicons name={icon} size={20} color={iconColor} />
+        <Text 
+          className="ml-3.5 text-[14px] font-bold"
+          style={{ color: textColor }}
         >
           {title}
         </Text>
       </View>
-      <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
+      <Ionicons name="chevron-forward" size={16} color="#d1d5db" />
     </TouchableOpacity>
   );
 }

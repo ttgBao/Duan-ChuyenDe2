@@ -496,43 +496,47 @@ export default function HomeScreen({ navigation, route }: Props) {
   };
 
   return (
-    <View className="flex-1 bg-[#f5f6fa] mt-8">
-      <StatusBar hidden={true} />
+    <View className="flex-1 bg-[#faf9f6] pt-1">
+      <StatusBar barStyle="dark-content" backgroundColor="#faf9f6" hidden={false} />
 
       {/* Header */}
-      <View className="flex-row items-center px-3 py-2 bg-white shadow z-10">
-        {/* Icon menu */}
+      <View className="flex-row items-center px-4 py-3 bg-[#faf9f6] border-b border-gray-100 z-10">
+        {/* Menu Hamburger */}
         <TouchableOpacity
-          className="p-2"
+          className="w-10 h-10 rounded-full bg-white border border-gray-200/80 items-center justify-center shadow-sm active:scale-95 flex"
           onPress={() => setMenuModalVisible(true)}
         >
-          <Feather name="menu" size={24} color="#333" />
+          <Feather name="menu" size={18} color="#1a1a1a" />
         </TouchableOpacity>
 
         {/* Thanh tìm kiếm */}
         <TouchableOpacity
-          className="flex-1 bg-gray-100 rounded-full px-4 py-2 justify-center"
+          className="flex-1 mx-3 h-10 bg-white border border-gray-200/80 rounded-full px-4 flex-row items-center shadow-sm active:bg-gray-50/50"
           onPress={() => navigation.navigate("SearchProduct")}
         >
-          <Text className="text-gray-500 text-sm">Tìm kiếm sản phẩm...</Text>
+          <Feather name="search" size={14} color="#666" />
+          <Text className="text-gray-400 text-xs font-semibold ml-2">Bạn đang tìm đồ cũ gì?</Text>
         </TouchableOpacity>
 
         {/* Icon trái tim */}
         <TouchableOpacity
-          className="p-2"
+          className="w-10 h-10 rounded-full bg-white border border-gray-200/80 items-center justify-center shadow-sm mr-2 active:scale-95 flex"
           onPress={() => navigation.navigate("SavedPostsScreen")}
         >
-          <FontAwesome name="heart-o" size={22} color="#333" />
+          <Feather name="heart" size={17} color="#1a1a1a" />
         </TouchableOpacity>
 
         {/* Icon chuông */}
-        <TouchableOpacity className="p-2 relative" onPress={handleBellPress}>
-          <Feather name="bell" size={22} color="#333" />
+        <TouchableOpacity 
+          className="w-10 h-10 rounded-full bg-white border border-gray-200/80 items-center justify-center shadow-sm relative active:scale-95 flex" 
+          onPress={handleBellPress}
+        >
+          <Feather name="bell" size={17} color="#1a1a1a" />
 
-          {/* 3. Thêm cái badge (chấm đỏ) */}
+          {/* Badge */}
           {unreadCount > 0 && (
-            <View className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full items-center justify-center border border-white">
-              <Text className="text-white text-[10px] font-bold">
+            <View className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full items-center justify-center border-2 border-white px-1">
+              <Text className="text-white text-[8px] font-extrabold">
                 {unreadCount > 9 ? "9+" : unreadCount}
               </Text>
             </View>
@@ -540,35 +544,43 @@ export default function HomeScreen({ navigation, route }: Props) {
         </TouchableOpacity>
       </View>
 
-      {/* 6. Thêm prop `refreshControl` vào ScrollView */}
       <ScrollView
         className="flex-1"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Banner */}
-        <View className="bg-white">
-          <View className="flex-row items-center px-4 py-4">
-            {/* Text bên trái */}
-            <View className="flex-1 pr-3">
-              <Text className="text-xl font-bold text-gray-800">
-                Hỗ trợ Mua bán & Trao đổi đồ cũ TDC
-              </Text>
-            </View>
+        {/* Banner with Double-Bezel Nested Architecture */}
+        <View className="p-4 bg-[#faf9f6]">
+          <View className="p-1 rounded-[24px] bg-black/[0.02] border border-black/[0.04]">
+            <View className="bg-white rounded-[20px] p-5 overflow-hidden relative shadow-sm border border-gray-100 flex-row items-center justify-between">
+              {/* Subtle background glow */}
+              <View className="absolute -top-12 -right-12 w-40 h-40 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
+              
+              <View className="flex-1 pr-3">
+                <View className="rounded-full px-2.5 py-0.5 bg-indigo-500/10 border border-indigo-500/20 self-start mb-2">
+                  <Text className="text-indigo-600 text-[9px] uppercase tracking-wider font-extrabold">TDC Market</Text>
+                </View>
+                <Text className="text-lg font-extrabold text-gray-800 leading-tight">
+                  Mua bán & Trao đổi đồ cũ sinh viên
+                </Text>
+                <Text className="text-gray-450 text-[11px] leading-relaxed mt-1">
+                  Đăng tin nhanh chóng, định giá tự động bằng trợ lý AI thông minh.
+                </Text>
+              </View>
 
-            {/* Hình bên phải */}
-            <Image
-              source={require("../../assets/banner.png")}
-              className="w-40 h-40 rounded-lg"
-              resizeMode="contain"
-            />
+              <Image
+                source={require("../../assets/banner.png")}
+                className="w-24 h-24 rounded-xl"
+                resizeMode="contain"
+              />
+            </View>
           </View>
         </View>
 
         {/* Tiêu đề danh mục */}
-        <View className="flex-row justify-between items-center px-4 mt-6 mb-2">
-          <Text className="text-base font-semibold text-gray-800">
+        <View className="px-5 mt-4 mb-2">
+          <Text className="text-xs font-bold text-gray-400 uppercase tracking-wider">
             Khám phá danh mục
           </Text>
         </View>
@@ -579,10 +591,10 @@ export default function HomeScreen({ navigation, route }: Props) {
           horizontal
           showsHorizontalScrollIndicator={false}
           keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12 }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8 }}
           renderItem={({ item }) => (
             <TouchableOpacity
-              className="w-20 items-center mr-4 bg-white rounded-lg p-2 shadow-sm"
+              className="items-center mr-4 bg-white rounded-2xl p-3 border border-gray-100 shadow-sm w-24 hover:border-indigo-500/30 flex"
               onPress={() => {
                 navigation.navigate("CategoryIndex", {
                   categoryId: item.id.toString(),
@@ -590,14 +602,16 @@ export default function HomeScreen({ navigation, route }: Props) {
                 });
               }}
             >
-              <Image
-                source={{ uri: item.image }}
-                className="w-8 h-8 mb-2"
-                resizeMode="contain"
-              />
+              <View className="w-12 h-12 rounded-full bg-indigo-500/5 items-center justify-center mb-2 flex">
+                <Image
+                  source={{ uri: item.image }}
+                  className="w-6 h-6"
+                  resizeMode="contain"
+                />
+              </View>
               <Text
-                className="text-[12px] text-gray-800 text-center leading-tight"
-                numberOfLines={2}
+                className="text-[11px] font-bold text-gray-800 text-center leading-tight"
+                numberOfLines={1}
                 ellipsizeMode="tail"
                 style={{ width: "100%" }}
               >
@@ -606,38 +620,41 @@ export default function HomeScreen({ navigation, route }: Props) {
             </TouchableOpacity>
           )}
         />
-        <View className="px-4">
+
+        {/* Filter Selection Tabs */}
+        <View className="px-4 mt-6">
           <FlatList
             data={filters}
             horizontal
             showsHorizontalScrollIndicator={false}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                className={`px-4 py-2 mr-3 rounded-full border ${
-                  selectedFilter === item.label
-                    ? "bg-blue-500 border-blue-500"
-                    : "bg-white border-gray-300"
-                }`}
-                onPress={() => {
-                  if (item.type === "navigate") {
-                    navigation.navigate("SuggestionScreen");
-                  } else {
-                    setSelectedFilter(item.label);
-                  }
-                }}
-              >
-                <Text
-                  className={`${
-                    selectedFilter === item.label
-                      ? "text-white"
-                      : "text-gray-700"
-                  } text-sm`}
+            renderItem={({ item }) => {
+              const isSelected = selectedFilter === item.label;
+              return (
+                <TouchableOpacity
+                  className={`px-4 py-2 mr-3 rounded-full border transition-all ${
+                    isSelected
+                      ? "bg-indigo-600 border-indigo-600 shadow-sm"
+                      : "bg-white border-gray-200/80"
+                  }`}
+                  onPress={() => {
+                    if (item.type === "navigate") {
+                      navigation.navigate("SuggestionScreen");
+                    } else {
+                      setSelectedFilter(item.label);
+                    }
+                  }}
                 >
-                  {item.label}
-                </Text>
-              </TouchableOpacity>
-            )}
+                  <Text
+                    className={`${
+                      isSelected ? "text-white font-bold" : "text-gray-600"
+                    } text-xs font-semibold`}
+                  >
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            }}
           />
         </View>
         {/* Danh sách sản phẩm */}
