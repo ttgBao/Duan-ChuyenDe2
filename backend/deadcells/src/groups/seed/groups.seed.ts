@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { Group } from 'src/entities/group.entity';
 import { GroupMember } from 'src/entities/group-member.entity';
+import { GroupRole } from 'src/entities/group-role.entity';
 
 @Injectable()
 export class GroupSeedService implements OnModuleInit {
@@ -11,6 +12,7 @@ export class GroupSeedService implements OnModuleInit {
     const groupRepo = this.dataSource.getRepository(Group);
     const groupMemberRepo = this.dataSource.getRepository(GroupMember);
     const userRepo = this.dataSource.getRepository('User');
+    const groupRoleRepo = this.dataSource.getRepository(GroupRole);
 
     const existingGroupCount = await groupRepo.count();
     if (existingGroupCount > 0) {
@@ -30,6 +32,19 @@ export class GroupSeedService implements OnModuleInit {
     }
 
     const ownerId = owner.id;
+
+    // Đảm bảo các group roles tồn tại trước khi seed groups và members để tránh lỗi Khóa Ngoại (Foreign Key constraint 23503)
+    let leaderRole = await groupRoleRepo.findOne({ where: { id: 2 } });
+    if (!leaderRole) {
+      console.log('GroupRole Leader (id: 2) not found, waiting 3s for GroupRoleSeedService...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      leaderRole = await groupRoleRepo.findOne({ where: { id: 2 } });
+      if (!leaderRole) {
+        console.log('GroupRole Leader (id: 2) still not found. Seeding it fallback...');
+        await groupRoleRepo.save({ id: 1, name: 'Member' });
+        await groupRoleRepo.save({ id: 2, name: 'Leader' });
+      }
+    }
 
     const groups = [
       {
