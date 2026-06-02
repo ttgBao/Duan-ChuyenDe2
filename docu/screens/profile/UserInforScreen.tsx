@@ -689,7 +689,7 @@ export default function UserInforScreen({ navigation, route }: any) {
       </View>
 
       <ScrollView className="flex-1 bg-slate-50/50" contentContainerStyle={{ paddingBottom: 40 }}>
-        {/* Cover Photo & Avatar Container */}
+        {/* Cover Photo Container */}
         <View className="w-full h-[150px] relative bg-slate-200">
           <Image
             key={coverImage}
@@ -716,8 +716,17 @@ export default function UserInforScreen({ navigation, route }: any) {
             </TouchableOpacity>
           )}
 
+          {isUploading && (
+            <View className="absolute inset-0 bg-black/35 flex items-center justify-center">
+              <ActivityIndicator size="large" color="#FFFFFF" />
+            </View>
+          )}
+        </View>
+
+        {/* Profile Header Details Section */}
+        <View className="px-6 pt-12 pb-5 bg-white border-b border-slate-100 flex flex-col relative" style={{ zIndex: 10 }}>
           {/* Double-Bezel Avatar (Matching UserScreen) */}
-          <View className="absolute -bottom-10 left-6 p-1 rounded-full bg-slate-100/90 border border-slate-200/80 shadow-md">
+          <View className="absolute -top-10 left-6 p-1 rounded-full bg-slate-100/90 border border-slate-200/80 shadow-md" style={{ zIndex: 20 }}>
             <View className="w-20 h-20 rounded-full bg-white border-2 border-white overflow-hidden justify-center items-center relative">
               <Image
                 key={avatar}
@@ -739,21 +748,12 @@ export default function UserInforScreen({ navigation, route }: any) {
                 onPress={() => handleImageOptions("image")}
                 disabled={isUploading}
                 className="absolute right-0 bottom-0 bg-blue-600 rounded-full p-1.5 border border-white shadow-sm active:bg-blue-700"
+                style={{ zIndex: 30 }}
               >
                 <Ionicons name="camera" size={12} color="white" />
               </TouchableOpacity>
             )}
           </View>
-
-          {isUploading && (
-            <View className="absolute inset-0 bg-black/35 flex items-center justify-center">
-              <ActivityIndicator size="large" color="#FFFFFF" />
-            </View>
-          )}
-        </View>
-
-        {/* Profile Header Details Section */}
-        <View className="px-6 pt-12 pb-5 bg-white border-b border-slate-100 flex flex-col">
           <View className="flex-row justify-between items-start">
             <View className="flex-1 mr-4">
               <View className="flex-row items-center gap-1.5 flex-wrap">
