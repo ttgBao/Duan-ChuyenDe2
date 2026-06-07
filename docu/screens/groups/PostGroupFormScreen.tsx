@@ -284,11 +284,23 @@ const PostGroupFormScreen = ({ navigation, route }: PostGroupFormProps) => {
               );
               return;
             }
+          } else {
+            setIsLoading(false);
+            Alert.alert(
+              "Hệ thống bận",
+              "Hệ thống kiểm duyệt AI đang bận. Vui lòng bấm đăng lại sau 3-5 giây."
+            );
+            return;
           }
         }
       } catch (err) {
         console.warn("Lỗi kiểm duyệt nhanh bằng AI:", err);
-        // Bỏ qua lỗi và tiếp tục đăng bài nếu dịch vụ AI gặp sự cố
+        setIsLoading(false);
+        Alert.alert(
+          "Hệ thống bận",
+          "Hệ thống kiểm duyệt AI đang bận hoặc gặp sự cố. Vui lòng thử lại sau vài giây."
+        );
+        return;
       }
 
       const formData = new FormData();
