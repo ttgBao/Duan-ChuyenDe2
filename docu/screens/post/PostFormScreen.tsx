@@ -687,6 +687,28 @@ const PostFormScreen = ({
 
     setIsLoading(true);
     try {
+      // Tự động kiểm duyệt ngôn từ bằng AI trước khi đăng bài
+      try {
+        const textToModerate = `${finalName || ""} ${description || ""}`;
+        if (textToModerate.trim()) {
+          const moderateRes = await axios.post(`${path}/ai/moderate`, { text: textToModerate });
+          if (moderateRes.data && moderateRes.data.success && moderateRes.data.data) {
+            const { isSafe } = moderateRes.data.data;
+            if (!isSafe) {
+              setIsLoading(false);
+              Alert.alert(
+                "Nội dung không phù hợp",
+                "Tiêu đề hoặc mô tả bài đăng chứa từ ngữ vi phạm quy chuẩn cộng đồng (phát hiện bởi AI). Vui lòng điều chỉnh lại."
+              );
+              return;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Lỗi kiểm duyệt nhanh bằng AI:", err);
+        // Bỏ qua lỗi và tiếp tục đăng bài nếu dịch vụ AI gặp sự cố
+      }
+
       const formData = new FormData();
 
       // 1. Các trường bắt buộc (String)
