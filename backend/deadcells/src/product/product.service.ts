@@ -264,6 +264,27 @@ export class ProductService {
       );
     }
 
+    // Tự động kiểm duyệt ngôn từ tiêu đề và mô tả sản phẩm bằng AI
+    let isSafe = true;
+    try {
+      const textToModerate = `${data.name || ''} ${data.description || ''}`;
+      if (textToModerate.trim()) {
+        const moderationResult = await this.aiService.moderateText(textToModerate);
+        if (moderationResult && moderationResult.success === true && moderationResult.data) {
+          isSafe = moderationResult.data.isSafe;
+        }
+      }
+    } catch (error) {
+      // Nếu AI Service bị lỗi (offline/timeout/sai API key), bỏ qua và để admin duyệt thủ công
+      this.logger.warn(`Lỗi gọi AI kiểm duyệt nội dung: ${error.message}. Chuyển tiếp tin đăng cho admin duyệt thủ công.`);
+    }
+
+    if (!isSafe) {
+      throw new BadRequestException(
+        'Nội dung tin đăng vi phạm quy chuẩn cộng đồng (phát hiện ngôn từ thô tục, quảng cáo hoặc spam bởi AI). Vui lòng điều chỉnh lại.',
+      );
+    }
+
     // 3. Set default productStatus
     let productStatusGr;
 
