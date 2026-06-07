@@ -803,7 +803,7 @@ export class ProductService {
         sub_category_id: p.sub_category_id,
         category_change_id: p.category_change_id,
         sub_category_change_id: p.sub_category_change_id,
-        status_id: p.status_id,
+        status_id: p.product_status_id || p.status_id || 1,
         visibility_type:
           p.visibility_type != null ? Number(p.visibility_type) : 0,
         group_id: p.group_id || p.group?.id || null,
