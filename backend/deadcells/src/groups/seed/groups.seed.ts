@@ -14,11 +14,7 @@ export class GroupSeedService implements OnModuleInit {
     const userRepo = this.dataSource.getRepository('User');
     const groupRoleRepo = this.dataSource.getRepository(GroupRole);
 
-    const existingGroupCount = await groupRepo.count();
-    if (existingGroupCount > 0) {
-      console.log('Groups already seeded. Skipping...');
-      return;
-    }
+    console.log('Bắt đầu seed groups...');
 
     let owner = await userRepo.findOne({ where: { email: 'admin@fit.tdc.edu.vn' } });
     if (!owner) {
