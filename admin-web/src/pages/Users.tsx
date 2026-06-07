@@ -14,6 +14,7 @@ import {
   Users as UsersIcon
 } from 'lucide-react';
 import api from '../services/api';
+import { useAdminStore } from '../store/adminStore';
 
 interface User {
   id: number;
@@ -87,6 +88,8 @@ const Users: React.FC = () => {
       // Update local state
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, statusId: newStatusId } : u));
       alert(`${actionText} tài khoản thành công`);
+      // Refresh admin stats to update user/report counts
+      useAdminStore.getState().fetchDashboardData(true);
     } catch (err: any) {
       console.error(err);
       alert(`Không thể ${actionText.toLowerCase()} tài khoản. Vui lòng thử lại.`);
@@ -104,6 +107,8 @@ const Users: React.FC = () => {
       setUsers(prev => prev.filter(u => u.id !== userId));
       setTotalItems(prev => prev - 1);
       alert('Đã xóa người dùng thành công');
+      // Refresh admin stats to update user counts
+      useAdminStore.getState().fetchDashboardData(true);
     } catch (err: any) {
       console.error(err);
       alert('Không thể xóa người dùng. Vui lòng thử lại.');

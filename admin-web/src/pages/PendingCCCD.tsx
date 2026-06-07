@@ -10,6 +10,7 @@ import {
   Info
 } from 'lucide-react';
 import api from '../services/api';
+import { useAdminStore } from '../store/adminStore';
 
 interface PendingUser {
   id: number;
@@ -58,6 +59,8 @@ const PendingCCCD: React.FC = () => {
       alert('Đã phê duyệt CCCD thành công!');
       setSelectedUser(null);
       setUsers(prev => prev.filter(u => u.id !== id));
+      // Refresh admin stats to update pending cccd count
+      useAdminStore.getState().fetchDashboardData(true);
     } catch (err: any) {
       console.error(err);
       alert('Phê duyệt thất bại. Vui lòng thử lại.');
@@ -74,6 +77,8 @@ const PendingCCCD: React.FC = () => {
       alert('Đã từ chối hồ sơ CCCD thành công.');
       setSelectedUser(null);
       setUsers(prev => prev.filter(u => u.id !== id));
+      // Refresh admin stats to update pending cccd count
+      useAdminStore.getState().fetchDashboardData(true);
     } catch (err: any) {
       console.error(err);
       alert('Từ chối thất bại. Vui lòng thử lại.');

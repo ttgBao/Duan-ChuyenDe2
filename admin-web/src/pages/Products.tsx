@@ -7,40 +7,22 @@ import {
   AlertCircle,
   Clock,
   Layers,
-  Search
+  Search,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
-import api from '../services/api';
-
-interface Product {
-  id: number;
-  name: string;
-  price: number;
-  description: string;
-  status_id?: number;
-  statusId?: number; // fallback support
-  createdAt: string;
-  created_at?: string;
-  images?: any[];
-  thumbnail_url?: string | null;
-  visibility_type?: number;
-  group_id?: number | null;
-  group?: {
-    id: number;
-    name: string;
-    isPublic: boolean;
-  } | null;
-  user?: {
-    id: number;
-    nickname: string;
-    fullName?: string;
-    email?: string;
-  };
-}
+import { useAdminStore } from '../store/adminStore';
+import type { Product } from '../store/adminStore';
 
 const Products: React.FC = () => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const {
+    products,
+    productsLoading,
+    productsError,
+    fetchProducts,
+    updateProductStatus
+  } = useAdminStore();
+
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   
   // Tabs: 0 = Public (Toàn trường), 1 = Group (Trong nhóm)
@@ -50,41 +32,25 @@ const Products: React.FC = () => {
   // Search query
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  const fetchProducts = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await api.get('/products/admin/all');
-      setProducts(response.data || []);
-    } catch (err: any) {
-      console.error(err);
-      setError('Không thể tải danh sách sản phẩm từ hệ thống.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const itemsPerPage = 9;
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [fetchProducts]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, statusFilter, searchQuery]);
 
   const handleUpdateStatus = async (productId: number, newStatusId: number) => {
     const actionText = newStatusId === 2 ? 'Phê duyệt' : 'Từ chối/Ẩn';
     if (!window.confirm(`Bạn có chắc chắn muốn ${actionText.toLowerCase()} sản phẩm này?`)) return;
 
     try {
-      // Calls PATCH /products/admin/status/:id with body { product_status_id: newStatusId }
-      await api.patch(`/products/admin/status/${productId}`, {
-        product_status_id: newStatusId
-      });
-      
-      // Update local state
-      setProducts(prev => prev.map(p => {
-        if (p.id === productId) {
-          return { ...p, status_id: newStatusId, statusId: newStatusId };
-        }
-        return p;
-      }));
+      await updateProductStatus(productId, newStatusId);
       
       if (selectedProduct && selectedProduct.id === productId) {
         setSelectedProduct(prev => prev ? { ...prev, status_id: newStatusId, statusId: newStatusId } : null);
@@ -129,7 +95,14 @@ const Products: React.FC = () => {
     return true;
   });
 
-  if (loading) {
+  // Paginated products
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  if (productsLoading) {
     return (
       <div className="h-[60vh] flex items-center justify-center flex-col space-y-4">
         <div className="w-12 h-12 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin"></div>
@@ -165,10 +138,10 @@ const Products: React.FC = () => {
         </div>
       </div>
 
-      {error && (
+      {productsError && (
         <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs flex items-center space-x-2">
           <AlertCircle size={14} />
-          <span>{error}</span>
+          <span>{productsError}</span>
         </div>
       )}
 
@@ -230,121 +203,155 @@ const Products: React.FC = () => {
           <p className="text-xs">Chưa có bài đăng nào khớp với bộ lọc hiện tại.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProducts.map((product) => {
-            const img = getProductImage(product);
-            const statusVal = product.status_id ?? product.statusId ?? 1;
-            const creationDate = product.created_at ?? product.createdAt;
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {paginatedProducts.map((product) => {
+              const img = getProductImage(product);
+              const statusVal = product.status_id ?? product.statusId ?? 1;
+              const creationDate = product.created_at ?? product.createdAt;
 
-            return (
-              <div 
-                key={product.id}
-                className="glass-card rounded-2xl border border-slate-800 flex flex-col justify-between overflow-hidden hover:border-slate-750 transition-all duration-300 group shadow-md hover:shadow-indigo-500/5"
-              >
-                {/* Image Cover */}
-                <div className="h-44 bg-slate-950 flex items-center justify-center border-b border-slate-800 overflow-hidden relative">
-                  {img ? (
-                    <img src={img} alt={product.name} className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500" />
-                  ) : (
-                    <ShoppingBag size={32} className="text-slate-750" />
-                  )}
-
-                  {/* Status Badges */}
-                  <div className="absolute top-3 right-3 flex flex-col gap-1.5 items-end">
-                    {statusVal === 2 ? (
-                      <span className="bg-emerald-500/10 text-emerald-450 border border-emerald-500/20 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
-                        Đang hiển thị
-                      </span>
-                    ) : statusVal === 1 ? (
-                      <span className="bg-amber-500/10 text-amber-450 border border-amber-500/20 px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center">
-                        <Clock size={10} className="mr-1" /> Chờ duyệt
-                      </span>
+              return (
+                <div 
+                  key={product.id}
+                  className="glass-card rounded-2xl border border-slate-800 flex flex-col justify-between overflow-hidden hover:border-slate-750 transition-all duration-300 group shadow-md hover:shadow-indigo-500/5"
+                >
+                  {/* Image Cover */}
+                  <div className="h-44 bg-slate-950 flex items-center justify-center border-b border-slate-800 overflow-hidden relative">
+                    {img ? (
+                      <img src={img} alt={product.name} className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500" />
                     ) : (
-                      <span className="bg-rose-500/10 text-rose-450 border border-rose-500/20 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
-                        Bị ẩn/Từ chối
-                      </span>
+                      <ShoppingBag size={32} className="text-slate-750" />
                     )}
 
-                    {/* Group Badge */}
-                    {product.group && (
-                      <span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1">
-                        <Layers size={10} /> {product.group.name}
-                      </span>
-                    )}
-                  </div>
-                </div>
+                    {/* Status Badges */}
+                    <div className="absolute top-3 right-3 flex flex-col gap-1.5 items-end">
+                      {statusVal === 2 ? (
+                        <span className="bg-emerald-500/10 text-emerald-450 border border-emerald-500/20 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+                          Đang hiển thị
+                        </span>
+                      ) : statusVal === 1 ? (
+                        <span className="bg-amber-500/10 text-amber-450 border border-amber-500/20 px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center">
+                          <Clock size={10} className="mr-1" /> Chờ duyệt
+                        </span>
+                      ) : (
+                        <span className="bg-rose-500/10 text-rose-455 border border-rose-500/20 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+                          Bị ẩn/Từ chối
+                        </span>
+                      )}
 
-                {/* Content */}
-                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-indigo-400 font-bold bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded">
-                        ID #{product.id}
-                      </span>
+                      {/* Group Badge */}
+                      {product.group && (
+                        <span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1">
+                          <Layers size={10} /> {product.group.name}
+                        </span>
+                      )}
                     </div>
-                    <h4 className="text-sm font-bold text-slate-200 line-clamp-2 pt-1 group-hover:text-indigo-400 transition-colors">
-                      {product.name}
-                    </h4>
-                    <p className="text-xs text-indigo-455 font-bold">
-                      {product.price === 0 ? 'Miễn phí / Trao đổi' : `${product.price.toLocaleString('vi-VN')} đ`}
-                    </p>
-                    <p className="text-xs text-slate-400 line-clamp-2 pt-1 leading-relaxed">{product.description}</p>
                   </div>
 
-                  <div className="border-t border-slate-800/60 pt-3 text-[11px] text-slate-500 flex justify-between items-center">
-                    <span>Đăng bởi: <strong className="text-slate-350 font-semibold">{product.user?.fullName || product.user?.nickname || 'Ẩn danh'}</strong></span>
-                    <span>{creationDate ? new Date(creationDate).toLocaleDateString('vi-VN') : ''}</span>
+                  {/* Content */}
+                  <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-indigo-400 font-bold bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded">
+                          ID #{product.id}
+                        </span>
+                      </div>
+                      <h4 className="text-sm font-bold text-slate-200 line-clamp-2 pt-1 group-hover:text-indigo-400 transition-colors">
+                        {product.name}
+                      </h4>
+                      <p className="text-xs text-indigo-455 font-bold">
+                        {product.price === 0 ? 'Miễn phí / Trao đổi' : `${product.price.toLocaleString('vi-VN')} đ`}
+                      </p>
+                      <p className="text-xs text-slate-400 line-clamp-2 pt-1 leading-relaxed">{product.description}</p>
+                    </div>
+
+                    <div className="border-t border-slate-800/60 pt-3 text-[11px] text-slate-500 flex justify-between items-center">
+                      <span>Đăng bởi: <strong className="text-slate-350 font-semibold">{product.user?.fullName || product.user?.nickname || 'Ẩn danh'}</strong></span>
+                      <span>{creationDate ? new Date(creationDate).toLocaleDateString('vi-VN') : ''}</span>
+                    </div>
                   </div>
-                </div>
 
-                {/* Actions */}
-                <div className="px-5 py-3.5 bg-slate-900/40 border-t border-slate-800/60 flex gap-2">
-                  <button
-                    onClick={() => setSelectedProduct(product)}
-                    className="flex-1 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors text-xs font-semibold flex items-center justify-center space-x-1 cursor-pointer"
-                  >
-                    <Eye size={12} />
-                    <span>Xem chi tiết</span>
-                  </button>
+                  {/* Actions */}
+                  <div className="px-5 py-3.5 bg-slate-900/40 border-t border-slate-800/60 flex gap-2">
+                    <button
+                      onClick={() => setSelectedProduct(product)}
+                      className="flex-1 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors text-xs font-semibold flex items-center justify-center space-x-1 cursor-pointer"
+                    >
+                      <Eye size={12} />
+                      <span>Xem chi tiết</span>
+                    </button>
 
-                  {statusVal === 1 && (
-                    <>
+                    {statusVal === 1 && (
+                      <>
+                        <button
+                          onClick={() => handleUpdateStatus(product.id, 3)}
+                          className="p-2 rounded-lg bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white transition-all border border-rose-500/20 cursor-pointer"
+                          title="Từ chối duyệt"
+                        >
+                          <X size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleUpdateStatus(product.id, 2)}
+                          className="p-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 text-emerald-450 hover:text-white transition-all border border-emerald-500/20 cursor-pointer"
+                          title="Phê duyệt"
+                        >
+                          <Check size={14} />
+                        </button>
+                      </>
+                    )}
+                    {statusVal === 2 && (
                       <button
                         onClick={() => handleUpdateStatus(product.id, 3)}
-                        className="p-2 rounded-lg bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white transition-all border border-rose-500/20 cursor-pointer"
-                        title="Từ chối duyệt"
+                        className="px-3 py-2 rounded-lg bg-rose-500/10 hover:bg-rose-500 text-rose-455 hover:text-white border border-rose-500/20 transition-all text-xs font-semibold cursor-pointer"
                       >
-                        <X size={14} />
+                        Gỡ bài đăng
                       </button>
+                    )}
+                    {statusVal === 3 && (
                       <button
                         onClick={() => handleUpdateStatus(product.id, 2)}
-                        className="p-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 text-emerald-450 hover:text-white transition-all border border-emerald-500/20 cursor-pointer"
-                        title="Phê duyệt"
+                        className="px-3 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 text-emerald-455 hover:text-white border border-emerald-500/20 transition-all text-xs font-semibold cursor-pointer"
                       >
-                        <Check size={14} />
+                        Duyệt lại bài
                       </button>
-                    </>
-                  )}
-                  {statusVal === 2 && (
-                    <button
-                      onClick={() => handleUpdateStatus(product.id, 3)}
-                      className="px-3 py-2 rounded-lg bg-rose-500/10 hover:bg-rose-500 text-rose-455 hover:text-white border border-rose-500/20 transition-all text-xs font-semibold cursor-pointer"
-                    >
-                      Gỡ bài đăng
-                    </button>
-                  )}
-                  {statusVal === 3 && (
-                    <button
-                      onClick={() => handleUpdateStatus(product.id, 2)}
-                      className="px-3 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 text-emerald-455 hover:text-white border border-emerald-500/20 transition-all text-xs font-semibold cursor-pointer"
-                    >
-                      Duyệt lại bài
-                    </button>
-                  )}
+                    )}
+                  </div>
                 </div>
+              );
+            })}
+          </div>
+
+          {/* Client-side Pagination Bar */}
+          {totalPages > 1 && (
+            <div className="px-6 py-4 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-between text-xs text-slate-400">
+              <div>
+                Hiển thị từ <span className="font-semibold text-slate-200">{((currentPage - 1) * itemsPerPage) + 1}</span> đến{' '}
+                <span className="font-semibold text-slate-200">
+                  {Math.min(currentPage * itemsPerPage, filteredProducts.length)}
+                </span>{' '}
+                trong tổng số <span className="font-semibold text-slate-200">{filteredProducts.length}</span> sản phẩm
               </div>
-            );
-          })}
+              <div className="flex items-center space-x-1.5">
+                <button
+                  disabled={currentPage <= 1}
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  className="p-1.5 rounded bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                <span className="px-3 py-1.5 rounded bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 font-semibold">
+                  {currentPage} / {totalPages}
+                </span>
+                <button
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  className="p-1.5 rounded bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -11,80 +11,31 @@ import {
   X,
   ShieldCheck
 } from 'lucide-react';
-import api from '../services/api';
-
-interface Report {
-  id: number;
-  reason: string;
-  description: string;
-  statusId: number; // 1 = Mới, 2 = Đã xử lý
-  createdAt: string;
-  reporter?: {
-    id: number;
-    nickname: string;
-    fullName: string;
-  };
-  reportedUser?: {
-    id: number;
-    nickname: string;
-    fullName: string;
-    statusId: number;
-  };
-  productId?: number; // Related product if reported against a post
-}
+import { useAdminStore } from '../store/adminStore';
+import type { Report } from '../store/adminStore';
 
 const Reports: React.FC = () => {
-  const [reports, setReports] = useState<Report[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const {
+    reports,
+    reportsLoading,
+    reportsError,
+    fetchReports,
+    resolveReport,
+    deleteReport,
+    banUser
+  } = useAdminStore();
 
-  const fetchReports = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await api.get('/reports');
-      setReports(response.data || []);
-    } catch (err: any) {
-      console.error(err);
-      setError('Không thể tải danh sách báo cáo. Đang sử dụng chế độ mô phỏng.');
-      // Mock data in case API fails
-      setReports([
-        {
-          id: 1,
-          reason: 'Lừa đảo / Đồ không đúng mô tả',
-          description: 'Sản phẩm ghi là mới 99% nhưng nhận được đồ đã cũ hỏng nát và không liên lạc lại được.',
-          statusId: 1,
-          createdAt: new Date().toISOString(),
-          reporter: { id: 5, nickname: 'sinh_vien_ngheo', fullName: 'Đỗ Văn Nam' },
-          reportedUser: { id: 1, nickname: 'quan_dep_trai', fullName: 'Lê Minh Quân', statusId: 1 }
-        },
-        {
-          id: 2,
-          reason: 'Ngôn từ xúc phạm / Toxic',
-          description: 'Người dùng sử dụng nhiều từ ngữ chửi bới xúc phạm trong khi thảo luận về trao đổi đồ.',
-          statusId: 2,
-          createdAt: new Date().toISOString(),
-          reporter: { id: 3, nickname: 'anh_tuan', fullName: 'Bùi Anh Tuấn' },
-          reportedUser: { id: 2, nickname: 'ha_kute', fullName: 'Nguyễn Thị Hà', statusId: 1 }
-        }
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
 
   useEffect(() => {
     fetchReports();
-  }, []);
+  }, [fetchReports]);
 
   const handleResolveReport = async (reportId: number) => {
     if (!window.confirm('Xác nhận đánh dấu báo cáo này là ĐÃ XỬ LÝ?')) return;
     try {
-      // Calls PATCH /reports/:id/status with statusId = 2 (Resolved)
-      await api.patch(`/reports/${reportId}/status`, { statusId: 2 });
+      await resolveReport(reportId);
       alert('Đã cập nhật trạng thái báo cáo thành công!');
-      setReports(prev => prev.map(r => r.id === reportId ? { ...r, statusId: 2 } : r));
       if (selectedReport && selectedReport.id === reportId) {
         setSelectedReport(prev => prev ? { ...prev, statusId: 2 } : null);
       }
@@ -97,21 +48,9 @@ const Reports: React.FC = () => {
   const handleBanReportedUser = async (userId: number) => {
     if (!window.confirm('Bạn có chắc chắn muốn KHÓA tài khoản người dùng bị báo cáo này vĩnh viễn?')) return;
     try {
-      // Calls PATCH /reports/user/:userId/status with statusId = 3 (Locked)
-      await api.patch(`/reports/user/${userId}/status`, { statusId: 3 });
+      await banUser(userId);
       alert('Đã khóa tài khoản thành công!');
       
-      // Update reported user status inside locally loaded reports
-      setReports(prev => prev.map(r => {
-        if (r.reportedUser && r.reportedUser.id === userId) {
-          return {
-            ...r,
-            reportedUser: { ...r.reportedUser, statusId: 3 }
-          };
-        }
-        return r;
-      }));
-
       if (selectedReport && selectedReport.reportedUser && selectedReport.reportedUser.id === userId) {
         setSelectedReport(prev => {
           if (prev && prev.reportedUser) {
@@ -132,10 +71,8 @@ const Reports: React.FC = () => {
   const handleDeleteReport = async (reportId: number) => {
     if (!window.confirm('Bạn có chắc chắn muốn XÓA báo cáo này khỏi danh sách?')) return;
     try {
-      // Calls DELETE /reports/:id
-      await api.delete(`/reports/${reportId}`);
+      await deleteReport(reportId);
       alert('Đã xóa báo cáo thành công.');
-      setReports(prev => prev.filter(r => r.id !== reportId));
       setSelectedReport(null);
     } catch (err) {
       console.error(err);
@@ -143,7 +80,7 @@ const Reports: React.FC = () => {
     }
   };
 
-  if (loading) {
+  if (reportsLoading) {
     return (
       <div className="h-[60vh] flex items-center justify-center flex-col space-y-4">
         <div className="w-12 h-12 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin"></div>
@@ -159,10 +96,10 @@ const Reports: React.FC = () => {
         <p className="text-slate-400 text-xs mt-1">Xử lý các khiếu nại, báo cáo gian lận hoặc toxic từ người dùng.</p>
       </div>
 
-      {error && (
+      {reportsError && (
         <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs flex items-center space-x-2">
           <AlertTriangle size={14} />
-          <span>{error}</span>
+          <span>{reportsError}</span>
         </div>
       )}
 

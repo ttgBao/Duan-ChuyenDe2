@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Users, 
@@ -13,166 +13,47 @@ import {
   BarChart3,
   PieChart
 } from 'lucide-react';
-import api from '../services/api';
+import { useAdminStore } from '../store/adminStore';
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip as ReTooltip,
+  CartesianGrid,
+  PieChart as RePieChart,
+  Pie,
+  Cell
+} from 'recharts';
 
-interface DashboardStats {
-  usersCount: number;
-  pendingCccdCount: number;
-  productsCount: number;
-  reportsCount: number;
-  groupsCount: number;
-}
-
-interface Product {
-  id: number;
-  name: string;
-  created_at?: string;
-  createdAt?: string;
-  dealType?: { id: number; name: string } | null;
-  category?: { id: number; name: string } | null;
-}
+const CustomTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-slate-950/90 text-white text-xs px-3 py-2 rounded-xl border border-slate-800 shadow-xl backdrop-blur-md">
+        <p className="font-bold">{payload[0].value} bài đăng</p>
+      </div>
+    );
+  }
+  return null;
+};
 
 const Dashboard: React.FC = () => {
-  const [stats, setStats] = useState<DashboardStats>({
-    usersCount: 0,
-    pendingCccdCount: 0,
-    productsCount: 0,
-    reportsCount: 0,
-    groupsCount: 0,
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [recentCccds, setRecentCccds] = useState<any[]>([]);
-  const [recentReports, setRecentReports] = useState<any[]>([]);
-
-  // Statistics parsed from products
-  const [weeklyPostCounts, setWeeklyPostCounts] = useState<{ dayName: string; count: number }[]>([]);
-  const [dealTypeCounts, setDealTypeCounts] = useState<{ name: string; percentage: number; color: string; count: number }[]>([]);
-  const [topCategories, setTopCategories] = useState<{ name: string; percentage: number; count: number }[]>([]);
+  const {
+    stats,
+    weeklyPostCounts,
+    dealTypeCounts,
+    topCategories,
+    recentCccds,
+    recentReports,
+    statsLoading,
+    statsError,
+    fetchDashboardData
+  } = useAdminStore();
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const [usersRes, cccdRes, productsRes, reportsRes, groupsRes] = await Promise.allSettled([
-          api.get('/admin/users?limit=1'),
-          api.get('/admin/pending-cccd'),
-          api.get('/products/admin/all'),
-          api.get('/reports'),
-          api.get('/admin/groups')
-        ]);
-
-        let usersCount = 0;
-        let pendingCccdCount = 0;
-        let productsCount = 0;
-        let reportsCount = 0;
-        let groupsCount = 0;
-        let fetchedProducts: Product[] = [];
-
-        if (usersRes.status === 'fulfilled') {
-          usersCount = usersRes.value.data?.meta?.totalItems || usersRes.value.data?.total || usersRes.value.data?.data?.length || 0;
-        }
-
-        if (cccdRes.status === 'fulfilled') {
-          pendingCccdCount = cccdRes.value.data?.length || 0;
-          setRecentCccds(cccdRes.value.data?.slice(0, 3) || []);
-        }
-
-        if (productsRes.status === 'fulfilled') {
-          fetchedProducts = productsRes.value.data || [];
-          productsCount = fetchedProducts.length;
-        }
-
-        if (reportsRes.status === 'fulfilled') {
-          reportsCount = reportsRes.value.data?.length || 0;
-          setRecentReports(reportsRes.value.data?.slice(0, 3) || []);
-        }
-
-        if (groupsRes.status === 'fulfilled') {
-          groupsCount = groupsRes.value.data?.length || 0;
-        }
-
-        setStats({
-          usersCount,
-          pendingCccdCount,
-          productsCount,
-          reportsCount,
-          groupsCount
-        });
-
-        // Compute metrics from products
-        if (fetchedProducts.length > 0) {
-          calculateCharts(fetchedProducts);
-        }
-
-      } catch (err) {
-        console.error('Lỗi khi tải thông tin Dashboard', err);
-        setError('Không thể tải toàn bộ dữ liệu. Một số API phản hồi lỗi.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchDashboardData();
-  }, []);
-
-  const calculateCharts = (productList: Product[]) => {
-    // 1. Weekly Posts Chart (Last 7 Days)
-    const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-    const last7Days = Array.from({ length: 7 }).map((_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      return {
-        dateString: d.toDateString(),
-        dayLabel: dayNames[d.getDay()],
-        count: 0
-      };
-    }).reverse();
-
-    productList.forEach(p => {
-      const createdDate = new Date(p.created_at || p.createdAt || '');
-      const matchedDay = last7Days.find(day => day.dateString === createdDate.toDateString());
-      if (matchedDay) {
-        matchedDay.count += 1;
-      }
-    });
-
-    setWeeklyPostCounts(last7Days.map(d => ({ dayName: d.dayLabel, count: d.count })));
-
-    // 2. Deal Type Counts (Pie / Donut Chart)
-    const dealMap: { [key: string]: number } = {};
-    productList.forEach(p => {
-      const name = p.dealType?.name || 'Khác';
-      dealMap[name] = (dealMap[name] || 0) + 1;
-    });
-
-    const colors = ['#6366f1', '#10b981', '#f59e0b', '#ec4899']; // Indigo, Emerald, Amber, Pink
-    const total = productList.length;
-    const dealList = Object.keys(dealMap).map((name, idx) => ({
-      name,
-      count: dealMap[name],
-      percentage: total > 0 ? Math.round((dealMap[name] / total) * 100) : 0,
-      color: colors[idx % colors.length]
-    })).sort((a, b) => b.count - a.count);
-
-    setDealTypeCounts(dealList);
-
-    // 3. Hot Categories
-    const catMap: { [key: string]: number } = {};
-    productList.forEach(p => {
-      const name = p.category?.name || 'Khác';
-      catMap[name] = (catMap[name] || 0) + 1;
-    });
-
-    const catList = Object.keys(catMap).map(name => ({
-      name,
-      count: catMap[name],
-      percentage: total > 0 ? Math.round((catMap[name] / total) * 100) : 0
-    })).sort((a, b) => b.count - a.count).slice(0, 5); // top 5
-
-    setTopCategories(catList);
-  };
+  }, [fetchDashboardData]);
 
   const statCards = [
     {
@@ -209,13 +90,7 @@ const Dashboard: React.FC = () => {
     }
   ];
 
-  // SVG Chart Computations
-  const maxWeeklyCount = Math.max(...weeklyPostCounts.map(w => w.count), 5); // avoid divide by zero, min height reference
-  
-  // Donut chart stroke calculations
-  let accumulatedPercentage = 0;
-
-  if (loading) {
+  if (statsLoading) {
     return (
       <div className="h-[60vh] flex items-center justify-center flex-col space-y-4">
         <div className="w-12 h-12 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin"></div>
@@ -237,9 +112,9 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {error && (
+      {statsError && (
         <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm">
-          {error} (Vẫn hiển thị thông tin tải được).
+          {statsError} (Vẫn hiển thị thông tin tải được).
         </div>
       )}
 
@@ -290,29 +165,43 @@ const Dashboard: React.FC = () => {
             </span>
           </div>
 
-          <div className="h-56 flex items-end justify-between px-2 pt-6">
-            {weeklyPostCounts.map((data, idx) => {
-              // Calculate height percentage
-              const barHeightPercent = Math.max((data.count / maxWeeklyCount) * 100, 4); // minimum height so bar is visible
-              return (
-                <div key={idx} className="flex flex-col items-center flex-1 group">
-                  <div className="relative w-full flex justify-center h-44 items-end">
-                    {/* Tooltip */}
-                    <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none bg-slate-950 text-white text-[10px] font-bold px-2 py-1 rounded border border-slate-800 shadow-xl whitespace-nowrap z-10">
-                      {data.count} bài đăng
-                    </div>
-                    {/* Bar */}
-                    <div 
-                      style={{ height: `${barHeightPercent}%` }}
-                      className="w-8 sm:w-10 bg-gradient-to-t from-indigo-600 to-indigo-455 rounded-t-lg group-hover:from-indigo-500 group-hover:to-violet-500 transition-all duration-500 shadow-md shadow-indigo-600/10"
-                    ></div>
-                  </div>
-                  <span className="mt-2.5 text-xs text-slate-500 font-semibold group-hover:text-slate-300 transition-colors">
-                    {data.dayName}
-                  </span>
-                </div>
-              );
-            })}
+          <div className="h-56 px-2 pt-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={weeklyPostCounts} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorPosts" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                <XAxis 
+                  dataKey="dayName" 
+                  stroke="#64748b" 
+                  tickLine={false} 
+                  axisLine={false} 
+                  tickMargin={8}
+                  style={{ fontSize: '11px', fontWeight: '500' }}
+                />
+                <YAxis 
+                  stroke="#64748b" 
+                  tickLine={false} 
+                  axisLine={false} 
+                  tickMargin={8}
+                  allowDecimals={false}
+                  style={{ fontSize: '11px', fontWeight: '500' }}
+                />
+                <ReTooltip content={<CustomTooltip />} />
+                <Area 
+                  type="monotone" 
+                  dataKey="count" 
+                  stroke="#6366f1" 
+                  strokeWidth={2} 
+                  fillOpacity={1} 
+                  fill="url(#colorPosts)" 
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
@@ -330,38 +219,41 @@ const Dashboard: React.FC = () => {
               </div>
             ) : (
               <div className="flex items-center gap-6">
-                {/* SVG Donut */}
+                {/* Recharts Donut */}
                 <div className="relative w-28 h-28 flex-shrink-0">
-                  <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                    {/* Background track */}
-                    <circle cx="18" cy="18" r="15.915" fill="none" stroke="#1e293b" strokeWidth="3" />
-                    
-                    {/* Segments */}
-                    {dealTypeCounts.map((deal, index) => {
-                      const strokeDasharray = `${deal.percentage} ${100 - deal.percentage}`;
-                      const strokeDashoffset = 100 - accumulatedPercentage;
-                      accumulatedPercentage += deal.percentage;
-
-                      return (
-                        <circle
-                          key={index}
-                          cx="18"
-                          cy="18"
-                          r="15.915"
-                          fill="none"
-                          stroke={deal.color}
-                          strokeWidth="3.2"
-                          strokeDasharray={strokeDasharray}
-                          strokeDashoffset={strokeDashoffset}
-                          className="transition-all duration-500"
-                        />
-                      );
-                    })}
-                  </svg>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RePieChart>
+                      <Pie
+                        data={dealTypeCounts}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={34}
+                        outerRadius={48}
+                        paddingAngle={3}
+                        dataKey="count"
+                      >
+                        {dealTypeCounts.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <ReTooltip 
+                        content={({ active, payload }: any) => {
+                          if (active && payload && payload.length) {
+                            return (
+                              <div className="bg-slate-950/90 text-white text-[10px] px-2 py-1 rounded-lg border border-slate-850 shadow-xl backdrop-blur-sm">
+                                <p className="font-semibold">{payload[0].name}: {payload[0].value} bài</p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                    </RePieChart>
+                  </ResponsiveContainer>
                   {/* Inside hole */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Tổng số</span>
-                    <span className="text-lg font-extrabold text-white">{stats.productsCount}</span>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
+                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Tổng số</span>
+                    <span className="text-base font-extrabold text-white">{stats.productsCount}</span>
                   </div>
                 </div>
 
