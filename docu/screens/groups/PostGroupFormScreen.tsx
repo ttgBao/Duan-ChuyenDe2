@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -34,6 +34,8 @@ const PostGroupFormScreen = ({ navigation, route }: PostGroupFormProps) => {
   // 3. LẤY 'group' TỪ PARAMS (BẮT BUỘC)
   const { group, onPostSuccess } = route.params;
   const { category, subCategory } = (route.params as any) || {};
+  const lastCheckedTextRef = useRef<string>("");
+  const lastCheckedIsSafeRef = useRef<boolean>(true);
 
   // --- TOÀN BỘ STATE (BAO GỒM CẢ STATE CỦA MODAL) ---
   const [title, setTitle] = useState("");
@@ -269,13 +271,29 @@ const PostGroupFormScreen = ({ navigation, route }: PostGroupFormProps) => {
 
     setIsLoading(true);
     try {
-      // Tự động kiểm duyệt ngôn từ bằng AI trước khi đăng bài vào nhóm
+      // 1. Kiểm tra cache xem văn bản này đã bị chặn trước đó chưa
+      const textToModerate = `${finalName || ""} ${description || ""}`;
+      if (textToModerate.trim() === lastCheckedTextRef.current && !lastCheckedIsSafeRef.current) {
+        setIsLoading(false);
+        Alert.alert(
+          "Nội dung không phù hợp",
+          "Tiêu đề hoặc mô tả bài đăng chứa từ ngữ vi phạm quy chuẩn cộng đồng. Vui lòng điều chỉnh lại trước khi đăng."
+        );
+        return;
+      }
+
+      // 2. Tự động kiểm duyệt ngôn từ bằng AI trước khi đăng bài vào nhóm
       try {
-        const textToModerate = `${finalName || ""} ${description || ""}`;
-        if (textToModerate.trim()) {
+        // Chỉ gọi API nếu văn bản khác với văn bản đã kiểm tra thành công trước đó
+        if (textToModerate.trim() && textToModerate.trim() !== lastCheckedTextRef.current) {
           const moderateRes = await axios.post(`${path}/ai/moderate`, { text: textToModerate });
           if (moderateRes.data && moderateRes.data.success && moderateRes.data.data) {
             const { isSafe } = moderateRes.data.data;
+            
+            // Cập nhật cache kiểm duyệt
+            lastCheckedTextRef.current = textToModerate.trim();
+            lastCheckedIsSafeRef.current = isSafe;
+
             if (!isSafe) {
               setIsLoading(false);
               Alert.alert(
@@ -285,22 +303,13 @@ const PostGroupFormScreen = ({ navigation, route }: PostGroupFormProps) => {
               return;
             }
           } else {
-            setIsLoading(false);
-            Alert.alert(
-              "Hệ thống bận",
-              "Hệ thống kiểm duyệt AI đang bận. Vui lòng bấm đăng lại sau 3-5 giây."
-            );
-            return;
+            // Lỗi nghiệp vụ từ AI Service (Gemini bận) -> Cho qua duyệt thủ công (failsafe)
+            console.warn("AI Service báo bận, chuyển sang duyệt thủ công");
           }
         }
       } catch (err) {
-        console.warn("Lỗi kiểm duyệt nhanh bằng AI:", err);
-        setIsLoading(false);
-        Alert.alert(
-          "Hệ thống bận",
-          "Hệ thống kiểm duyệt AI đang bận hoặc gặp sự cố. Vui lòng thử lại sau vài giây."
-        );
-        return;
+        console.warn("Lỗi kết nối kiểm duyệt nhanh bằng AI:", err);
+        // Khi AI service bị lỗi/offline, cho phép bỏ qua để chuyển sang duyệt thủ công ở backend
       }
 
       const formData = new FormData();
