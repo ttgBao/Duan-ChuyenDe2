@@ -22,14 +22,18 @@ class GeminiService:
         """
         Generate text response from Gemini API.
         """
-        model = genai.GenerativeModel(self.model_name)
-        
-        # If system_prompt is provided, combine it with the prompt
-        if system_prompt:
-            prompt = system_prompt + "\n\n" + prompt
+        try:
+            model = genai.GenerativeModel(self.model_name)
+            
+            # If system_prompt is provided, combine it with the prompt
+            if system_prompt:
+                prompt = system_prompt + "\n\n" + prompt
 
-        response = model.generate_content(prompt)
-        return response.text
+            response = model.generate_content(prompt)
+            return response.text
+        except Exception as e:
+            print(f"Error calling Gemini generate: {e}")
+            return "Xin lỗi, hiện tại dịch vụ AI đang bận. Vui lòng thử lại sau."
 
     def generate_with_image(self, prompt: str, image_base64: str, system_prompt: Optional[str] = None) -> str:
         """
