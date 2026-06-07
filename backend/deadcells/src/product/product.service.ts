@@ -272,6 +272,7 @@ export class ProductService {
         const moderationResult = await this.aiService.moderateText(textToModerate);
         if (moderationResult && moderationResult.success === true && moderationResult.data) {
           isSafe = moderationResult.data.isSafe;
+          this.logger.log(`Kết quả kiểm duyệt AI cho "${data.name}": isSafe = ${isSafe}, chi tiết = ${JSON.stringify(moderationResult.data)}`);
         }
       }
     } catch (error) {

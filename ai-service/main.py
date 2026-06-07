@@ -67,7 +67,15 @@ def moderate_text(request: ModerateRequest):
     system_prompt = "Bạn là AI kiểm duyệt. Hãy trả lời 'VI_PHAM' nếu văn bản chứa từ ngữ thô tục, chửi thề, lừa đảo hoặc spam. Nếu không, trả lời 'AN_TOAN'."
     response = gemini_service.generate(request.text, system_prompt)
     
-    is_safe = "AN_TOAN" in response.upper()
+    # Chuẩn hóa chuỗi (viết hoa, bỏ dấu tiếng Việt) để kiểm tra vi phạm một cách chính xác
+    import unicodedata
+    resp_upper = response.upper()
+    resp_normalized = ''.join(c for c in unicodedata.normalize('NFD', resp_upper) if unicodedata.category(c) != 'Mn')
+    
+    # An toàn nếu KHÔNG chứa từ khóa vi phạm (ví dụ: "VI_PHAM", "VI PHAM", "VIPHAM")
+    has_violation = "VI_PHAM" in resp_normalized or "VI PHAM" in resp_normalized or "VIPHAM" in resp_normalized
+    is_safe = not has_violation
+    
     return {
         "success": True,
         "data": {
